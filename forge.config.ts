@@ -10,6 +10,12 @@ import { FuseV1Options, FuseVersion } from '@electron/fuses';
 const config: ForgeConfig = {
   packagerConfig: {
     asar: true,
+    prune: true,
+    ignore: (file: string) => {
+      if (!file) return false;
+      const keep = file.startsWith("/.vite") || (file.startsWith("node_modules"));
+      return !keep;
+    }
   },
   rebuildConfig: {},
   makers: [
