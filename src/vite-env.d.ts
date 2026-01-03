@@ -14,10 +14,24 @@ declare global {
 }
 
 export interface IElectronAPI {
+  // Auth
   verifyPin: (pin: string) => Promise<Staff | undefined>;
   verifyOwner: (pin: string) => Promise<Staff | undefined>;
   verifyReceptionist: (pin: string) => Promise<Staff | undefined>;
+  // Staff
   getAllStaff: () => Promise<Staff[]>;
   createStaff: (data: any) => Promise<number>;
-  getDefaultRates: () => Promise<Settings>;
+  // Settings
+  getSettings: () => Promise<Settings>;
+  updateSettings: (data: any) => Promise<void>;
+  // Promos    
+  getPromos: () => Promise<any[]>;
+  createPromo: (data: any) => Promise<number>;
+  updatePromo: (id: number, data: any) => Promise<void>;
+  deletePromo: (id: number) => Promise<void>;
+  // Redemptions
+  getRedemptions: () => Promise<any[]>;
+  createRedemption: (data: any) => Promise<number>;
+  updateRedemption: (id: number, data: any) => Promise<void>;
+  deleteRedemption: (id: number) => Promise<void>;
 }

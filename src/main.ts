@@ -23,6 +23,7 @@ const createWindow = () => {
     height: 768,
     alwaysOnTop: true, // Keep the POS window on top
     webPreferences: {
+      devTools: false, // Enable DevTools for debugging
       preload: path.join(__dirname, 'preload.js'),
     },
   });

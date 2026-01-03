@@ -22,9 +22,10 @@ export function StaffManager() {
   // 2. Auto-fill Defaults when "Tech" is checked
   useEffect(() => {
     if (isTech) {
-      window.api.getDefaultRates().then((rates) => {
-        if (!commRate) setCommRate(rates.defaultCommissionTechRate.toString());
-        if (!checkRate) setCheckRate(rates.defaultPayoutCheckRate.toString());
+      // UPDATE CALL:
+      window.api.getSettings().then((settings) => {
+        if (!commRate) setCommRate(settings.defaultCommissionTechRate.toString());
+        if (!checkRate) setCheckRate(settings.defaultPayoutCheckRate.toString());
       });
     } else {
         setCommRate('');
