@@ -10,6 +10,15 @@ export default function setUpHandlers(db: AppDatabase) {
     // 2. Staff Handlers
     ipcMain.handle('staff:get-all', () => {return db.getAllStaff();});
     ipcMain.handle('staff:create', (_, data) => {return db.createStaff(data);});
+    ipcMain.handle('staff:update', (_, { id, data }) => db.updateStaff(id, data));
+    ipcMain.handle('staff:delete', (_, id) => db.deleteStaff(id));
+    ipcMain.handle('staff:admin-set-pin', (_, { staffId, newPin }) => {return db.updateStaffPin(staffId, newPin);});
+    ipcMain.handle('auth:change-own-pin', (_, { staffId, oldPin, newPin }) => {
+        const user = db.verifyStaffPin(staffId, oldPin);// Verify Old PIN first
+        if (!user) throw new Error("Invalid PIN.");     // Frontend catches this
+        db.updateStaffPin(staffId, newPin);             // Update to New PIN
+        return true;
+    });
     // 3. Settings Handlers
     ipcMain.handle('settings:get', () => {return db.getSettings();});
     ipcMain.handle('settings:update', (_, data) => db.updateSettings(data));

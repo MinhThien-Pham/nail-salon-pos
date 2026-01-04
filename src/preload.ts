@@ -12,6 +12,10 @@ const api = {
     // Staff
     getAllStaff: () => ipcRenderer.invoke('staff:get-all'),
     createStaff: (data: any) => ipcRenderer.invoke('staff:create', data),
+    adminSetPin: (staffId: number, newPin: string) => ipcRenderer.invoke('staff:admin-set-pin', { staffId, newPin }),
+    changeOwnPin: (staffId: number, oldPin: string, newPin: string) => ipcRenderer.invoke('auth:change-own-pin', { staffId, oldPin, newPin }),    
+    updateStaff: (id: number, data: any) => ipcRenderer.invoke('staff:update', { id, data }),
+    deleteStaff: (id: number) => ipcRenderer.invoke('staff:delete', id),
     // Settings
     getSettings: () => ipcRenderer.invoke('settings:get'),
     updateSettings: (data: any) => ipcRenderer.invoke('settings:update', data),

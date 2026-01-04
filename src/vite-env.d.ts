@@ -21,6 +21,10 @@ export interface IElectronAPI {
   // Staff
   getAllStaff: () => Promise<Staff[]>;
   createStaff: (data: any) => Promise<number>;
+  adminSetPin: (staffId: number, newPin: string) => Promise<void>;
+  changeOwnPin: (staffId: number, oldPin: string, newPin: string) => Promise<boolean>;
+  updateStaff: (id: number, data: any) => Promise<void>;
+  deleteStaff: (id: number) => Promise<void>;
   // Settings
   getSettings: () => Promise<Settings>;
   updateSettings: (data: any) => Promise<void>;

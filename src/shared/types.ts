@@ -29,8 +29,8 @@ export type LoyaltyEarn =
       mode: "PER_VISIT";
       // Example: 1 point per qualifying visit -> pointsPerVisit = 1
       pointsPerVisit: number;
-      // Optional threshold for a visit to qualify (in cents). If null => every visit counts.
-      minServiceCentsToCount: number | null;
+      // Optional threshold for a visit to qualify (in cents). If 0 => every visit counts.
+      minServiceCentsToCount: number;
     };
 
 // -------- Reward types --------
@@ -64,9 +64,7 @@ export type RewardRedemption = {
   audience: Audience; // null means ALL
   reward: Reward;
   redeemPointsCost: number;
-}
-
-export type DayOfWeek = 'MON' | 'TUE' | 'WED' | 'THU' | 'FRI' | 'SAT' | 'SUN';
+};
 
 // --- Settings ---
 export type Settings = {
@@ -74,7 +72,7 @@ export type Settings = {
 
     // --- Payroll Settings ---
     periodDays: number;              // default 14
-    periodStartDayofWeek: DayOfWeek; // default 'MON'
+    periodStartDate: string;        // ISO date string of the start of the first payroll period
     
     // --- Loyalty Settings ---
     // storing this as a JSON string in DB, but parse it for the UI

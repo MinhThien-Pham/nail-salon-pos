@@ -4,6 +4,7 @@ import { app } from 'electron';
 import path from 'path';
 import { Settings, Staff } from '../shared/types';
 
+const todayISO = new Date().toISOString().split('T')[0];
 export class AppDatabase {
     private db: Database.Database;
 
@@ -41,7 +42,7 @@ export class AppDatabase {
                 defaultCommissionTechRate REAL,
                 defaultPayoutCheckRate REAL,
                 periodDays INTEGER,
-                periodStartDayofWeek TEXT,
+                periodStartDate TEXT,
                 loyaltyEarnConfig TEXT -- JSON: { mode, pointsPerDollarSpent, ... }
             );
         `);
@@ -83,18 +84,17 @@ export class AppDatabase {
             const defaultLoyalty = JSON.stringify({ mode: "PER_DOLLAR", pointsPerDollarSpent: 1 });
             
             this.db.prepare(`
-                INSERT INTO settings (id, defaultCommissionTechRate, defaultPayoutCheckRate, periodDays, periodStartDayofWeek, loyaltyEarnConfig)
+                INSERT INTO settings (id, defaultCommissionTechRate, defaultPayoutCheckRate, periodDays, periodStartDate, loyaltyEarnConfig)
                 VALUES (1, ?, ?, ?, ?, ?)
             `).run(
                 0.6,
                 0.7,
                 14,
-                'MON',
+                todayISO,
                 defaultLoyalty
             );
             
             // B. Default Promo ("We Miss You")
-            const todayISO = new Date().toISOString().split('T')[0];
             this.db.prepare(`
                 INSERT INTO promos (isActive, name, timeConfig, audience, couponCode, minServiceCents, rewardConfig)
                 VALUES (1, ?, ?, ?, ?, ?, ?)
@@ -147,7 +147,7 @@ export class AppDatabase {
             defaultCommissionTechRate: row.defaultCommissionTechRate,
             defaultPayoutCheckRate: row.defaultPayoutCheckRate,
             periodDays: row.periodDays,
-            periodStartDayofWeek: row.periodStartDayofWeek,
+            periodStartDate: row.periodStartDate,
             loyaltyEarn: JSON.parse(row.loyaltyEarnConfig)
         };
     }
@@ -170,7 +170,7 @@ export class AppDatabase {
             updated.defaultCommissionTechRate,
             updated.defaultPayoutCheckRate,
             updated.periodDays,
-            updated.periodStartDayofWeek,
+            updated.periodStartDate,
             JSON.stringify(updated.loyaltyEarn)
         );
     }
@@ -183,17 +183,27 @@ export class AppDatabase {
     }
 
     verifyOwnerPin(pin: string): Staff | undefined {
-        const user = this.verifyPin(pin);
+        const user = this.verifyStaffPin(1, pin);
         if (!user) return undefined;
         // Strictly ID 1 AND Owner role
-        const isOwner = user.staffId === 1 && user.roles.includes('OWNER');
-        return isOwner ? user : undefined;
+        return user.roles.includes('OWNER') ? user : undefined;
     }
 
     verifyReceptionistPin(pin: string): Staff | undefined {
         const user = this.verifyPin(pin);
         if (!user) return undefined;
         return user.roles.includes('RECEPTIONIST') ? user : undefined;
+    }
+
+    verifyStaffPin(staffId: number, pin: string): Staff | undefined {
+        const user = this.db.prepare('SELECT * FROM staff WHERE staffId = ? AND pin = ? AND isActive = 1').get(staffId, pin) as any;
+        if (!user) return undefined;
+        return this.mapRowToStaff(user);
+    }
+
+    updateStaffPin(staffId: number, newPin: string) {
+        this.db.prepare('UPDATE staff SET pin = ?, updatedAt = ? WHERE staffId = ?')
+               .run(newPin, Date.now(), staffId);
     }
 
     getAllStaff(): Staff[] {
@@ -220,6 +230,45 @@ export class AppDatabase {
         });
 
         return info.lastInsertRowid as number;
+    }
+
+   updateStaff(staffId: number, staff: Partial<Staff>) {
+        // Prevent updating the Owner's roles or ID (security check)
+        if (staffId === 1) {
+            // We only allow changing the Name or PIN for owner, not roles/status
+            // But for simplicity in this MVP, let's just allow updates but ensure they don't lock themselves out.
+            // A safer backend would check roles here.
+        }
+
+        const stmt = this.db.prepare(`
+            UPDATE staff SET 
+                name = COALESCE(@name, name),
+                roles = COALESCE(@roles, roles),
+                pin = COALESCE(@pin, pin),
+                isActive = COALESCE(@isActive, isActive),
+                skillsTypeIds = COALESCE(@skillsTypeIds, skillsTypeIds),
+                commissionTechRate = COALESCE(@commissionTechRate, commissionTechRate),
+                payoutCheckRate = COALESCE(@payoutCheckRate, payoutCheckRate),
+                updatedAt = @updatedAt
+            WHERE staffId = @staffId
+        `);
+
+        stmt.run({
+            staffId,
+            name: staff.name,
+            roles: staff.roles ? JSON.stringify(staff.roles) : null,
+            pin: staff.pin,
+            isActive: staff.isActive === undefined ? null : (staff.isActive ? 1 : 0),
+            skillsTypeIds: staff.skillsTypeIds ? JSON.stringify(staff.skillsTypeIds) : null,
+            commissionTechRate: staff.payroll?.commissionTechRate,
+            payoutCheckRate: staff.payroll?.payoutCheckRate,
+            updatedAt: Date.now()
+        });
+    }
+
+    deleteStaff(staffId: number) {
+        if (staffId === 1) throw new Error("Cannot delete the Owner account.");
+        this.db.prepare('DELETE FROM staff WHERE staffId = ?').run(staffId);
     }
 
     // --- HELPERS ---

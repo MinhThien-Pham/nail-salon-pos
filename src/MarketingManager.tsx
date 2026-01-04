@@ -94,7 +94,7 @@ export function MarketingManager() {
                     <div style={{ fontSize: '0.85em', color: '#6b7280', marginTop: 2 }}>
                         Min Spend: <strong>${(p.minServiceCents/100).toFixed(2)}</strong>
                         {' • '}
-                        Ends: {endDate.toLocaleDateString()} ({p.time.durationDays} days)
+                        Ends: <strong>{endDate.toLocaleDateString()} </strong> ({p.time.durationDays} days)
                     </div>
                 </div>
                 <div style={{ display: 'flex', gap: 5 }}>
