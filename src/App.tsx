@@ -4,9 +4,10 @@ import { Staff } from './shared/types';
 import { StaffManager } from './StaffManager';
 import { MarketingManager } from './MarketingManager';
 import { SettingsManager } from './SettingsManager';
+import { ServicesManager } from './ServicesManager';
 import { NumPadModal } from './components/NumPadModal';
 
-type View = 'STAFF' | 'MARKETING' | 'SETTINGS';
+type View = 'STAFF' | 'SERVICES' | 'MARKETING' | 'SETTINGS';
 
 function App() {
   const [currentUser, setCurrentUser] = useState<Staff | null>(null);
@@ -80,12 +81,14 @@ function App() {
             
             <nav style={{ display: 'flex', gap: 10 }}>
                 <button className={currentView === 'STAFF' ? '' : 'secondary'} onClick={() => setCurrentView('STAFF')}>Staff</button>
+                <button className={currentView === 'SERVICES' ? '' : 'secondary'} onClick={() => setCurrentView('SERVICES')}>Services</button>
                 <button className={currentView === 'MARKETING' ? '' : 'secondary'} onClick={() => setCurrentView('MARKETING')}>Marketing</button>
                 <button className={currentView === 'SETTINGS' ? '' : 'secondary'} onClick={() => setCurrentView('SETTINGS')}>Settings</button>
             </nav>
         </header>
 
         {currentView === 'STAFF' && <StaffManager />}
+        {currentView === 'SERVICES' && <ServicesManager />}
         {currentView === 'MARKETING' && <MarketingManager />}
         {currentView === 'SETTINGS' && <SettingsManager />}
     </div>

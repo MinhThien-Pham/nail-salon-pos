@@ -29,6 +29,15 @@ const api = {
     createRedemption: (data: any) => ipcRenderer.invoke('marketing:create-redemption', data),
     updateRedemption: (id: number, data: any) => ipcRenderer.invoke('marketing:update-redemption', { id, data }),
     deleteRedemption: (id: number) => ipcRenderer.invoke('marketing:delete-redemption', id),
+    // Services
+getServiceTypes: () => ipcRenderer.invoke('services:get-types'),
+    createServiceType: (name: string) => ipcRenderer.invoke('services:create-type', name),
+    updateServiceType: (id: number, name: string) => ipcRenderer.invoke('services:update-type', { id, name }),
+    deleteServiceType: (id: number) => ipcRenderer.invoke('services:delete-type', id),
+    getAllServices: () => ipcRenderer.invoke('services:get-all'),
+    createService: (data: any) => ipcRenderer.invoke('services:create', data),
+    updateService: (id: number, data: any) => ipcRenderer.invoke('services:update', { id, data }),
+    deleteService: (id: number) => ipcRenderer.invoke('services:delete', id),
 };
 
 contextBridge.exposeInMainWorld('api', api);

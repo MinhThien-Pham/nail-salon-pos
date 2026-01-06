@@ -9,7 +9,7 @@ export type Staff = {
     roles: Role[];
     pin: string;
     isActive: boolean;
-    skillsTypeIds: string[]; // IDs of services they can perform
+    skillsTypeIds: number[];    // array of ServiceType IDs the staff is skilled in
     payroll?: { 
         commissionTechRate?: number; // default 0.6
         payoutCheckRate?: number;    // default 0.7
@@ -93,4 +93,22 @@ export type Settings = {
     // --- Rates for new staff ---
     defaultCommissionTechRate: number; //default 0.6
     defaultPayoutCheckRate: number;    // default 0.7
+};
+
+// --- SERVICES ---
+export type ServiceType = {
+    serviceTypeId: number;
+    name: string; // unique, required
+    createdAt: number;
+    updatedAt: number;
+};
+
+export type Service = {
+    serviceId: number;
+    typeId: number; // ServiceType.serviceTypeId
+    name: string;   // unique, required
+    priceCents: number;
+    durationMin: number;
+    createdAt: number;
+    updatedAt: number;
 };

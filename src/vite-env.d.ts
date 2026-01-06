@@ -38,4 +38,13 @@ export interface IElectronAPI {
   createRedemption: (data: any) => Promise<number>;
   updateRedemption: (id: number, data: any) => Promise<void>;
   deleteRedemption: (id: number) => Promise<void>;
+  // Services
+getServiceTypes: () => Promise<ServiceType[]>;
+  createServiceType: (name: string) => Promise<number>;
+  updateServiceType: (id: number, name: string) => Promise<void>;
+  deleteServiceType: (id: number) => Promise<void>;
+  getAllServices: () => Promise<Service[]>;
+  createService: (data: any) => Promise<number>;
+  updateService: (id: number, data: any) => Promise<void>;
+  deleteService: (id: number) => Promise<void>;
 }

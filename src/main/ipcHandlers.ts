@@ -32,4 +32,13 @@ export default function setUpHandlers(db: AppDatabase) {
     ipcMain.handle('marketing:create-redemption', (_, data) => db.createRedemption(data));
     ipcMain.handle('marketing:update-redemption', (_, { id, data }) => db.updateRedemption(id, data));
     ipcMain.handle('marketing:delete-redemption', (_, id) => db.deleteRedemption(id));
+    // 6. Services
+ipcMain.handle('services:get-types', () => db.getAllServiceTypes());
+    ipcMain.handle('services:create-type', (_, name) => db.createServiceType(name));
+    ipcMain.handle('services:update-type', (_, { id, name }) => db.updateServiceType(id, name));
+    ipcMain.handle('services:delete-type', (_, id) => db.deleteServiceType(id));
+    ipcMain.handle('services:get-all', () => db.getAllServices());
+    ipcMain.handle('services:create', (_, data) => db.createService(data));
+    ipcMain.handle('services:update', (_, { id, data }) => db.updateService(id, data));
+    ipcMain.handle('services:delete', (_, id) => db.deleteService(id));
 }

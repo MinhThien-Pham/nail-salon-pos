@@ -1,10 +1,11 @@
 // src/StaffManager.tsx
 import { useState, useEffect } from 'react';
-import { Staff, Role } from './shared/types';
+import { Staff, Role, ServiceType } from './shared/types';
 import { NumPadModal } from './components/NumPadModal';
 
 export function StaffManager() {
   const [staffList, setStaffList] = useState<Staff[]>([]);
+  const [serviceTypes, setServiceTypes] = useState<ServiceType[]>([]); // Store types here
   
   // UI State
   const [isCreating, setIsCreating] = useState(false);
@@ -15,12 +16,16 @@ export function StaffManager() {
   const [showPinPad, setShowPinPad] = useState(false);
 
   useEffect(() => {
-    loadStaff();
+    loadData();
   }, []);
 
-  const loadStaff = async () => {
+  const loadData = async () => {
     const list = await window.api.getAllStaff();
     setStaffList(list.filter(s => s.staffId !== 1)); // Filter out Owner
+    
+    // Load Service Types for the picker
+    const types = await window.api.getServiceTypes();
+    setServiceTypes(types);
   };
 
   const handleSave = async (data: any) => {
@@ -31,13 +36,13 @@ export function StaffManager() {
       await window.api.createStaff({ ...data, pin: '000000' });
       setIsCreating(false);
     }
-    loadStaff();
+    loadData();
   };
 
   const handleDelete = async (id: number) => {
     if (confirm("Are you sure you want to delete this staff member?")) {
       await window.api.deleteStaff(id);
-      loadStaff();
+      loadData();
     }
   };
 
@@ -50,10 +55,9 @@ export function StaffManager() {
     if (changingPinId && newPin.length >= 4) {
       try {
           await window.api.adminSetPin(changingPinId, newPin);
-          // Optional: Show success toast/message here if you have a notification system
           setChangingPinId(null);
           setShowPinPad(false);
-          loadStaff();
+          loadData();
       } catch (err) {
           console.error("Failed to update PIN", err);
       }
@@ -66,6 +70,7 @@ export function StaffManager() {
         <div key={s.staffId} style={{ marginBottom: 15, border: '1px solid #3b82f6', padding: 10, borderRadius: 6 }}>
           <StaffForm 
             initialData={s} 
+            serviceTypes={serviceTypes} // Pass types to form
             onSave={handleSave} 
             onCancel={() => setEditingId(null)} 
           />
@@ -121,7 +126,11 @@ export function StaffManager() {
       {isCreating && (
         <div className="form-section" style={{ border: '2px solid #3b82f6' }}>
            <h4 style={{ marginTop: 0 }}>New Staff Member</h4>
-           <StaffForm onSave={handleSave} onCancel={() => setIsCreating(false)} />
+           <StaffForm 
+             onSave={handleSave} 
+             serviceTypes={serviceTypes} // Pass types to form
+             onCancel={() => setIsCreating(false)} 
+            />
         </div>
       )}
 
@@ -145,7 +154,7 @@ export function StaffManager() {
   );
 }
 
-function StaffForm({ initialData, onSave, onCancel }: any) {
+function StaffForm({ initialData, serviceTypes, onSave, onCancel }: { initialData?: Staff, serviceTypes: ServiceType[], onSave: (d: any) => void, onCancel: () => void }) {
   const defaultState = {
     name: '',
     roles: [] as Role[],
@@ -153,7 +162,8 @@ function StaffForm({ initialData, onSave, onCancel }: any) {
     isTech: false,
     isReceptionist: false,
     commRate: '',
-    checkRate: ''
+    checkRate: '',
+    skillsTypeIds: [] as number[]
   };
 
   const [data, setData] = useState(() => {
@@ -163,7 +173,8 @@ function StaffForm({ initialData, onSave, onCancel }: any) {
         isTech: initialData.roles.includes('TECH'),
         isReceptionist: initialData.roles.includes('RECEPTIONIST'),
         commRate: initialData.payroll?.commissionTechRate?.toString() || '',
-        checkRate: initialData.payroll?.payoutCheckRate?.toString() || ''
+        checkRate: initialData.payroll?.payoutCheckRate?.toString() || '',
+        skillsTypeIds: initialData.skillsTypeIds || []
       };
     }
     return defaultState;
@@ -184,8 +195,37 @@ function StaffForm({ initialData, onSave, onCancel }: any) {
     }
   }, [data.isTech]);
 
+  // Pill Button Helper (Copied style from MarketingManager)
+  const renderSkillButton = (label: string, isSelected: boolean, onClick: () => void) => (
+    <button 
+        key={label} 
+        onClick={onClick}
+        style={{ 
+            marginRight: 6,
+            marginBottom: 6,
+            padding: '4px 10px',
+            borderRadius: '15px',
+            border: isSelected ? '1px solid #2563eb' : '1px solid #d1d5db',
+            backgroundColor: isSelected ? '#eff6ff' : 'white',
+            color: isSelected ? '#1e40af' : '#374151',
+            fontSize: '0.85em',
+            cursor: 'pointer'
+        }}
+    >
+        {label}
+    </button>
+  );
+
+  const toggleSkill = (id: number) => {
+    const current = data.skillsTypeIds;
+    if (current.includes(id)) {
+        setData({ ...data, skillsTypeIds: current.filter((x: number) => x !== id) });
+    } else {
+        setData({ ...data, skillsTypeIds: [...current, id] });
+    }
+  };
+
   const handleSubmit = () => {
-    // Validation
     const newErrors: any = {};
     let isValid = true;
 
@@ -214,7 +254,7 @@ function StaffForm({ initialData, onSave, onCancel }: any) {
         name: data.name,
         roles,
         isActive: data.isActive,
-        skillsTypeIds: [],
+        skillsTypeIds: data.isTech ? data.skillsTypeIds : [], // Only save skills if Tech
         payroll
     };
     
@@ -244,6 +284,19 @@ function StaffForm({ initialData, onSave, onCancel }: any) {
             </label>
             {errors.roles && <small style={{ display: 'block', color: 'red', marginTop: 5 }}>{errors.roles}</small>}
         </div>
+
+        {/* SKILLS SECTION (Only for Techs) */}
+        {data.isTech && (
+            <div className="form-group" style={{ gridColumn: 'span 2' }}>
+                <label style={{display:'block', marginBottom: 5}}>Skill Set:</label>
+                <div style={{ display: 'flex', flexWrap: 'wrap' }}>
+                    {serviceTypes.length === 0 && <span style={{color:'#666', fontSize:'0.9em'}}>No Service Categories found. Add them in Services tab.</span>}
+                    {serviceTypes.map(t => 
+                        renderSkillButton(t.name, data.skillsTypeIds.includes(t.serviceTypeId), () => toggleSkill(t.serviceTypeId))
+                    )}
+                </div>
+            </div>
+        )}
 
         {data.isTech && (
            <div style={{ gridColumn: 'span 2', background: '#eff6ff', padding: 10, borderRadius: 4, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>

@@ -2,7 +2,7 @@
 import Database from 'better-sqlite3';
 import { app } from 'electron';
 import path from 'path';
-import { Settings, Staff, Promo, Reward } from '../shared/types';
+import { Settings, Staff, Promo, Reward, ServiceType, Service } from '../shared/types';
 
 const todayISO = new Date().toISOString().split('T')[0];
 
@@ -52,7 +52,6 @@ export class AppDatabase {
         `);
 
         // 3. Promos Table
-        // UPDATED: Defaults for windowDays are now 0
         this.db.exec(`
             CREATE TABLE IF NOT EXISTS promos (
                 promoId INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -97,6 +96,30 @@ export class AppDatabase {
             );
         `);
 
+        // 5. Service Types
+        this.db.exec(`
+            CREATE TABLE IF NOT EXISTS service_types (
+                serviceTypeId INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT UNIQUE NOT NULL,
+                createdAt INTEGER,
+                updatedAt INTEGER
+            );
+        `);
+
+        // 6. Services
+        this.db.exec(`
+            CREATE TABLE IF NOT EXISTS services (
+                serviceId INTEGER PRIMARY KEY AUTOINCREMENT,
+                typeId INTEGER NOT NULL,
+                name TEXT NOT NULL,
+                priceCents INTEGER DEFAULT 0,
+                durationMin INTEGER DEFAULT 0,
+                createdAt INTEGER,
+                updatedAt INTEGER,
+                FOREIGN KEY (typeId) REFERENCES service_types(serviceTypeId) ON DELETE CASCADE
+            );
+        `);
+
         this.seedData();
         this.cleanupExpiredPromos();
     }
@@ -131,7 +154,6 @@ export class AppDatabase {
         }
 
         // B. Seed "Immortal" Promos (ID 1 & 2)
-        // Explicitly setting windowDays to 7 here
         this.db.prepare(`
             INSERT OR IGNORE INTO promos (
                 promoId, name, isActive, triggerType, customerDateKey, 
@@ -144,7 +166,6 @@ export class AppDatabase {
         `).run();
 
         // C. Seed "We Miss You" (ID 3)
-        // Relying on defaults (0) for windowDays
         this.db.prepare(`
             INSERT OR IGNORE INTO promos (
                 promoId, name, isActive, triggerType, 
@@ -339,6 +360,7 @@ export class AppDatabase {
         const rows = this.db.prepare('SELECT * FROM staff').all() as any[];
         return rows.map(this.mapRowToStaff);
     }
+
     createStaff(staff: any): number { 
          const stmt = this.db.prepare(`
             INSERT INTO staff (name, roles, pin, isActive, skillsTypeIds, commissionTechRate, payoutCheckRate, createdAt, updatedAt)
@@ -349,20 +371,46 @@ export class AppDatabase {
             roles: JSON.stringify(staff.roles),
             pin: staff.pin,
             isActive: staff.isActive ? 1 : 0,
-            skillsTypeIds: JSON.stringify(staff.skillsTypeIds),
+            // FIX: Ensure this is never null, so it hits the TEXT column correctly
+            skillsTypeIds: JSON.stringify(staff.skillsTypeIds || []),
             commissionTechRate: staff.payroll?.commissionTechRate || 0,
             payoutCheckRate: staff.payroll?.payoutCheckRate || 0,
             createdAt: Date.now(),
             updatedAt: Date.now()
         }).lastInsertRowid as number;
     }
+
     updateStaff(id: number, staff: any) { 
         const stmt = this.db.prepare(`
-            UPDATE staff SET name = COALESCE(@name, name), roles = COALESCE(@roles, roles), pin = COALESCE(@pin, pin), isActive = COALESCE(@isActive, isActive), skillsTypeIds = COALESCE(@skillsTypeIds, skillsTypeIds), commissionTechRate = COALESCE(@commissionTechRate, commissionTechRate), payoutCheckRate = COALESCE(@payoutCheckRate, payoutCheckRate), updatedAt = @updatedAt WHERE staffId = @staffId
+            UPDATE staff SET 
+                name = COALESCE(@name, name), 
+                roles = COALESCE(@roles, roles), 
+                pin = COALESCE(@pin, pin), 
+                isActive = COALESCE(@isActive, isActive), 
+                skillsTypeIds = COALESCE(@skillsTypeIds, skillsTypeIds), 
+                commissionTechRate = COALESCE(@commissionTechRate, commissionTechRate), 
+                payoutCheckRate = COALESCE(@payoutCheckRate, payoutCheckRate), 
+                updatedAt = @updatedAt 
+            WHERE staffId = @staffId
         `);
-        stmt.run({ ...staff, roles: staff.roles ? JSON.stringify(staff.roles) : null, isActive: staff.isActive===undefined?null:(staff.isActive?1:0), skillsTypeIds: staff.skillsTypeIds ? JSON.stringify(staff.skillsTypeIds) : null, commissionTechRate: staff.payroll?.commissionTechRate, payoutCheckRate: staff.payroll?.payoutCheckRate, updatedAt: Date.now(), staffId: id });
+        
+        stmt.run({ 
+            ...staff, 
+            roles: staff.roles ? JSON.stringify(staff.roles) : null, 
+            isActive: staff.isActive === undefined ? null : (staff.isActive ? 1 : 0), 
+            // FIX: Handle array to string conversion carefully
+            skillsTypeIds: staff.skillsTypeIds ? JSON.stringify(staff.skillsTypeIds) : null, 
+            commissionTechRate: staff.payroll?.commissionTechRate, 
+            payoutCheckRate: staff.payroll?.payoutCheckRate, 
+            updatedAt: Date.now(), 
+            staffId: id 
+        });
     }
-    deleteStaff(id: number) { if (id === 1) throw new Error("Cannot delete Owner"); this.db.prepare('DELETE FROM staff WHERE staffId = ?').run(id); }
+
+    deleteStaff(id: number) { 
+        if (id === 1) throw new Error("Cannot delete Owner"); 
+        this.db.prepare('DELETE FROM staff WHERE staffId = ?').run(id); 
+    }
     
     // Auth
     verifyPin(pin: string): Staff | undefined { const u = this.db.prepare('SELECT * FROM staff WHERE pin = ? AND isActive = 1').get(pin); return u ? this.mapRowToStaff(u) : undefined; }
@@ -391,6 +439,82 @@ export class AppDatabase {
         this.db.prepare(`UPDATE settings SET defaultCommissionTechRate = ?, defaultPayoutCheckRate = ?, periodDays = ?, periodStartDate = ?, loyaltyEarnConfig = ? WHERE id = 1`).run(up.defaultCommissionTechRate, up.defaultPayoutCheckRate, up.periodDays, up.periodStartDate, JSON.stringify(up.loyaltyEarn));
     }
 
-    private mapRowToStaff(row: any): Staff { return { ...row, roles: JSON.parse(row.roles), skillsTypeIds: JSON.parse(row.skillsTypeIds), isActive: !!row.isActive, payroll: { commissionTechRate: row.commissionTechRate, payoutCheckRate: row.payoutCheckRate } }; }
+    private mapRowToStaff(row: any): Staff { 
+        let skills: number[] = [];
+        // FIX: Robust JSON parsing for skills
+        try {
+            if (row.skillsTypeIds) {
+                skills = JSON.parse(row.skillsTypeIds);
+                if (!Array.isArray(skills)) skills = [];
+            }
+        } catch (e) {
+            skills = [];
+        }
+
+        return { 
+            ...row, 
+            roles: JSON.parse(row.roles), 
+            skillsTypeIds: skills, 
+            isActive: !!row.isActive, 
+            payroll: { 
+                commissionTechRate: row.commissionTechRate, 
+                payoutCheckRate: row.payoutCheckRate 
+            } 
+        }; 
+    }
     private mapRowToRedemption(row: any) { return { redemptionId: row.redemptionId, isActive: !!row.isActive, name: row.name, audience: JSON.parse(row.audience), redeemPointsCost: row.redeemPointsCost, reward: JSON.parse(row.rewardConfig) }; }
+
+    // --- SERVICE TYPES ---
+    getAllServiceTypes(): ServiceType[] {
+        return this.db.prepare('SELECT * FROM service_types ORDER BY name ASC').all() as ServiceType[];
+    }
+
+    createServiceType(name: string): number {
+        const stmt = this.db.prepare('INSERT INTO service_types (name, createdAt, updatedAt) VALUES (?, ?, ?)');
+        const now = Date.now();
+        return stmt.run(name, now, now).lastInsertRowid as number;
+    }
+
+    updateServiceType(id: number, name: string) {
+        this.db.prepare('UPDATE service_types SET name = ?, updatedAt = ? WHERE serviceTypeId = ?')
+            .run(name, Date.now(), id);
+    }
+
+    deleteServiceType(id: number) {
+        this.db.prepare('DELETE FROM service_types WHERE serviceTypeId = ?').run(id);
+    }
+
+    // --- SERVICES ---
+    getAllServices(): Service[] {
+        return this.db.prepare('SELECT * FROM services ORDER BY name ASC').all() as Service[];
+    }
+
+    createService(s: any): number {
+        const stmt = this.db.prepare(`
+            INSERT INTO services (typeId, name, priceCents, durationMin, createdAt, updatedAt)
+            VALUES (@typeId, @name, @priceCents, @durationMin, @createdAt, @updatedAt)
+        `);
+        const now = Date.now();
+        return stmt.run({ ...s, createdAt: now, updatedAt: now }).lastInsertRowid as number;
+    }
+
+    updateService(id: number, data: any) {
+        const stmt = this.db.prepare(`
+            UPDATE services SET 
+                name = @name, 
+                priceCents = @priceCents, 
+                durationMin = @durationMin, 
+                updatedAt = @updatedAt 
+            WHERE serviceId = @serviceId
+        `);
+        stmt.run({ 
+            ...data, 
+            serviceId: id, 
+            updatedAt: Date.now() 
+        });
+    }
+
+    deleteService(id: number) {
+        this.db.prepare('DELETE FROM services WHERE serviceId = ?').run(id);
+    }
 }
