@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Settings } from './shared/types';
-import { NumPadModal } from './components/NumPadModal';
+import { Settings } from '../../shared/types';
+import { NumPadModal } from '../../components/NumPadModal';
 
 export function SettingsManager() {
   const [settings, setSettings] = useState<Settings | null>(null);

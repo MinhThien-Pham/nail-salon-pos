@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Promo, LoyaltyTier, LifecycleStage, Reward, Audience, RewardRedemption } from './shared/types';
+import { Promo, LoyaltyTier, LifecycleStage, Reward, Audience, RewardRedemption } from '../../shared/types';
 
 export function MarketingManager() {
   const [promos, setPromos] = useState<Promo[]>([]);

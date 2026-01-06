@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ServiceType, Service } from './shared/types';
+import { ServiceType, Service } from '../../shared/types';
 
 export function ServicesManager() {
     const [types, setTypes] = useState<ServiceType[]>([]);

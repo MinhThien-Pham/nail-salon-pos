@@ -1,10 +1,10 @@
 // src/App.tsx
 import { useState } from 'react';
 import { Staff } from './shared/types';
-import { StaffManager } from './StaffManager';
-import { MarketingManager } from './MarketingManager';
-import { SettingsManager } from './SettingsManager';
-import { ServicesManager } from './ServicesManager';
+import { StaffManager } from './views/Admin/StaffManager';
+import { MarketingManager } from './views/Admin/MarketingManager';
+import { SettingsManager } from './views/Admin/SettingsManager';
+import { ServicesManager } from './views/Admin/ServicesManager';
 import { NumPadModal } from './components/NumPadModal';
 
 type View = 'STAFF' | 'SERVICES' | 'MARKETING' | 'SETTINGS';

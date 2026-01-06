@@ -1,7 +1,7 @@
 // src/StaffManager.tsx
 import { useState, useEffect } from 'react';
-import { Staff, Role, ServiceType } from './shared/types';
-import { NumPadModal } from './components/NumPadModal';
+import { Staff, Role, ServiceType } from '../../shared/types';
+import { NumPadModal } from '../../components/NumPadModal';
 
 export function StaffManager() {
   const [staffList, setStaffList] = useState<Staff[]>([]);
