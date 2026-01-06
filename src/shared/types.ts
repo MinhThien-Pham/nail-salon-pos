@@ -20,45 +20,57 @@ export type Staff = {
 
 // -------- Loyalty earn modes (owner must choose ONE) --------
 export type LoyaltyEarn =
-  | {
-      mode: "PER_DOLLAR";
-      // Example: 1 point per $1 spent -> pointsPerDollarSpent = 1
-      pointsPerDollarSpent: number;
-    }
-  | {
-      mode: "PER_VISIT";
-      // Example: 1 point per qualifying visit -> pointsPerVisit = 1
-      pointsPerVisit: number;
-      // Optional threshold for a visit to qualify (in cents). If 0 => every visit counts.
-      minServiceCentsToCount: number;
-    };
+  | { mode: "PER_DOLLAR"; pointsPerDollarSpent: number; }
+  | { mode: "PER_VISIT"; pointsPerVisit: number; minServiceCentsToCount: number; };
 
 // -------- Reward types --------
 export type Reward =
-  | { type: "CREDIT"; creditCents: number }            // $ off service (cents)
-  | { type: "PERCENT"; percentOffService: number };    // % off service (0-100)
+  | { type: "CREDIT"; creditCents: number; }            // $ off service (cents)
+  | { type: "PERCENT"; percentOffService: number; };    // % off service (0-100)
+
+// -------- Audience Targeting  --------
+export type LoyaltyTier = 'BRONZE' | 'SILVER' | 'GOLD' | 'PLATINUM';
+export type LifecycleStage = 'NEW' | 'ACTIVE' | 'AT_RISK' | 'CHURNED';
+
+export type Audience = {
+    tiers: LoyaltyTier[] | null;
+    stages: LifecycleStage[] | null;
+} | null; // null means ALL customers
+
+// --- Promos (New Schema) ---
+export type TriggerType = 'MANUAL' | 'CUSTOMER_DATE_DRIVEN';
 
 // -------- Promos --------
-export type PromoTime =
-  | { startISO: string; endISO: string }                // explicit range
-  | { startISO: string; durationDays: number };         // end = start + durationDays
-
-export type Audience = CustomerType[] | null;   // null means all
-
 export type Promo = {
-  promoId: string;
-  isActive: boolean;
+  promoId: number;
   name: string;
-  time: PromoTime;
-  audience: Audience; // null means ALL
-  couponCode?: string; // optional coupon code to activate
-  minServiceCents: number; // 0 means no min spend
+  isActive: boolean;
+  
+  triggerType: TriggerType;
+  customerDateKey?: string; // e.g., 'dateOfBirthISO' or 'stats.firstVisitISO'
+  
+  // Manual Date Logic
+  startISO?: string;       
+  endISO?: string;         
+  
+  // Dynamic Window Logic (for Special Days)
+  windowDaysBefore?: number;
+  windowDaysAfter?: number;
+  
+  // Recurrence
+  recurEveryDays: number; 
+  usageLimitPerCustomer: number; 
+
+  // Targeting & Value
+  audience: Audience; 
+  couponCode?: string; 
+  minServiceCents: number; 
   reward: Reward;
 };
 
 // -------- Reward Redemption --------
 export type RewardRedemption = {
-  redemptionId: string;
+  redemptionId: number;
   isActive: boolean;
   name: string;
   audience: Audience; // null means ALL
@@ -82,6 +94,3 @@ export type Settings = {
     defaultCommissionTechRate: number; //default 0.6
     defaultPayoutCheckRate: number;    // default 0.7
 };
-
-// -------- Customer-related types --------
-export type CustomerType = "VIP" | "NEW" | "AT_RISK" | "REGULAR" | "NORMAL";

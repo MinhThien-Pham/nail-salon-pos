@@ -1,6 +1,7 @@
 // src/StaffManager.tsx
 import { useState, useEffect } from 'react';
 import { Staff, Role } from './shared/types';
+import { NumPadModal } from './components/NumPadModal';
 
 export function StaffManager() {
   const [staffList, setStaffList] = useState<Staff[]>([]);
@@ -9,8 +10,9 @@ export function StaffManager() {
   const [isCreating, setIsCreating] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   
-  // PIN Change State
+  // PIN Change State (using NumPad)
   const [changingPinId, setChangingPinId] = useState<number | null>(null);
+  const [showPinPad, setShowPinPad] = useState(false);
 
   useEffect(() => {
     loadStaff();
@@ -18,17 +20,14 @@ export function StaffManager() {
 
   const loadStaff = async () => {
     const list = await window.api.getAllStaff();
-    // Filter out Owner (ID 1)
-    setStaffList(list.filter(s => s.staffId !== 1));
+    setStaffList(list.filter(s => s.staffId !== 1)); // Filter out Owner
   };
 
   const handleSave = async (data: any) => {
     if (editingId) {
-      // Edit Mode: Update details, don't touch PIN
       await window.api.updateStaff(editingId, data);
       setEditingId(null);
     } else {
-      // Create Mode: Default PIN is 000000
       await window.api.createStaff({ ...data, pin: '000000' });
       setIsCreating(false);
     }
@@ -42,16 +41,21 @@ export function StaffManager() {
     }
   };
 
-  // --- METHOD #2: ADMIN SET PIN ---
+  const startPinChange = (id: number) => {
+    setChangingPinId(id);
+    setShowPinPad(true);
+  };
+
   const handlePinUpdate = async (newPin: string) => {
-    if (changingPinId && newPin.trim()) {
+    if (changingPinId && newPin.length >= 4) {
       try {
           await window.api.adminSetPin(changingPinId, newPin);
-          alert("PIN updated successfully");
+          // Optional: Show success toast/message here if you have a notification system
           setChangingPinId(null);
+          setShowPinPad(false);
           loadStaff();
       } catch (err) {
-          alert("Failed to update PIN.");
+          console.error("Failed to update PIN", err);
       }
     }
   };
@@ -90,7 +94,7 @@ export function StaffManager() {
           </div>
 
           <div style={{ display: 'flex', gap: 5 }}>
-            <button className="secondary" style={{ padding: '4px 8px', fontSize: '0.8em' }} onClick={() => setChangingPinId(s.staffId)}>
+            <button className="secondary" style={{ padding: '4px 8px', fontSize: '0.8em' }} onClick={() => startPinChange(s.staffId)}>
                Change PIN
             </button>
             <button className="secondary" style={{ padding: '4px 8px', fontSize: '0.8em' }} onClick={() => setEditingId(s.staffId)}>
@@ -114,14 +118,6 @@ export function StaffManager() {
         )}
       </div>
 
-      {/* CHANGE PIN MODAL OVERLAY */}
-      {changingPinId && (
-        <ChangePinModal 
-            onSave={handlePinUpdate} 
-            onCancel={() => setChangingPinId(null)} 
-        />
-      )}
-
       {isCreating && (
         <div className="form-section" style={{ border: '2px solid #3b82f6' }}>
            <h4 style={{ marginTop: 0 }}>New Staff Member</h4>
@@ -132,44 +128,21 @@ export function StaffManager() {
       <div className="form-section">
          <h4 style={{ color: '#059669', borderBottom: '2px solid #059669', paddingBottom: 5, marginTop: 0 }}>Active Team</h4>
          {staffList.filter(s => s.isActive).map(renderStaffItem)}
-         {staffList.filter(s => s.isActive).length === 0 && <p style={{ color: '#999', fontStyle: 'italic' }}>No active staff</p>}
 
          <h4 style={{ color: '#6b7280', borderBottom: '2px solid #6b7280', paddingBottom: 5, marginTop: 20 }}>Inactive</h4>
          {staffList.filter(s => !s.isActive).map(renderStaffItem)}
-         {staffList.filter(s => !s.isActive).length === 0 && <p style={{ color: '#999', fontStyle: 'italic' }}>No inactive staff</p>}
       </div>
+
+      {/* NUMPAD FOR STAFF PIN CHANGE */}
+      <NumPadModal 
+        isOpen={showPinPad}
+        title="Enter New Staff PIN"
+        isSecure={true}
+        onClose={() => setShowPinPad(false)}
+        onSubmit={handlePinUpdate}
+      />
     </div>
   );
-}
-
-function ChangePinModal({ onSave, onCancel }: { onSave: (pin: string) => void, onCancel: () => void }) {
-    const [newPin, setNewPin] = useState('');
-
-    return (
-        <div style={{
-            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-            backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000
-        }}>
-            <div style={{ background: 'white', padding: 20, borderRadius: 8, width: 300, boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
-                <h3 style={{ marginTop: 0 }}>Change Staff PIN</h3>
-                <p style={{ fontSize: '0.9em', color: '#666' }}>Enter the new PIN for this staff member.</p>
-                
-                <input 
-                    type="text" 
-                    autoFocus
-                    value={newPin} 
-                    onChange={e => setNewPin(e.target.value)} 
-                    placeholder="New PIN" 
-                    style={{ width: '100%', padding: '8px', marginBottom: 15, fontSize: '1.2em', textAlign: 'center', letterSpacing: '2px' }}
-                />
-
-                <div style={{ display: 'flex', gap: 10 }}>
-                    <button style={{ flex: 1 }} onClick={() => onSave(newPin)}>Update</button>
-                    <button style={{ flex: 1 }} className="secondary" onClick={onCancel}>Cancel</button>
-                </div>
-            </div>
-        </div>
-    );
 }
 
 function StaffForm({ initialData, onSave, onCancel }: any) {
@@ -177,7 +150,6 @@ function StaffForm({ initialData, onSave, onCancel }: any) {
     name: '',
     roles: [] as Role[],
     isActive: true,
-    skillsTypeIds: [],
     isTech: false,
     isReceptionist: false,
     commRate: '',
@@ -197,6 +169,9 @@ function StaffForm({ initialData, onSave, onCancel }: any) {
     return defaultState;
   });
 
+  // Validation State
+  const [errors, setErrors] = useState<{name?: string, roles?: string}>({});
+
   useEffect(() => {
     if (!initialData && data.isTech && !data.commRate) {
       window.api.getSettings().then((s) => {
@@ -210,8 +185,21 @@ function StaffForm({ initialData, onSave, onCancel }: any) {
   }, [data.isTech]);
 
   const handleSubmit = () => {
-    if (!data.name.trim()) return alert("Name is required");
-    if (!data.isTech && !data.isReceptionist) return alert("Select at least one role");
+    // Validation
+    const newErrors: any = {};
+    let isValid = true;
+
+    if (!data.name.trim()) {
+        newErrors.name = "Staff Name is required.";
+        isValid = false;
+    }
+    if (!data.isTech && !data.isReceptionist) {
+        newErrors.roles = "Select at least one role.";
+        isValid = false;
+    }
+
+    setErrors(newErrors);
+    if (!isValid) return;
 
     const roles: Role[] = [];
     if (data.isTech) roles.push('TECH');
@@ -236,18 +224,25 @@ function StaffForm({ initialData, onSave, onCancel }: any) {
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
         <div className="form-group" style={{ gridColumn: 'span 2' }}>
-            <label>Name:</label>
-            <input value={data.name} onChange={e => setData({...data, name: e.target.value})} placeholder="Jane Doe" />
+            <label>Name <span style={{color:'red'}}>*</span></label>
+            <input 
+                value={data.name} 
+                onChange={e => { setData({...data, name: e.target.value}); if(errors.name) setErrors({...errors, name: ''}); }} 
+                placeholder="Jane Doe" 
+                style={{ borderColor: errors.name ? 'red' : undefined }}
+            />
+            {errors.name && <small style={{ color: 'red' }}>{errors.name}</small>}
         </div>
 
         <div className="form-group" style={{ gridColumn: 'span 2', background: '#f9fafb', padding: 10, borderRadius: 4 }}>
-            <strong>Roles: </strong>
+            <strong>Roles <span style={{color:'red'}}>*</span>: </strong>
             <label style={{ marginRight: 15 }}>
-              <input type="checkbox" checked={data.isTech} onChange={e => setData({...data, isTech: e.target.checked})} /> Tech
+              <input type="checkbox" checked={data.isTech} onChange={e => { setData({...data, isTech: e.target.checked}); if(errors.roles) setErrors({...errors, roles: ''}); }} /> Tech
             </label>
             <label>
-              <input type="checkbox" checked={data.isReceptionist} onChange={e => setData({...data, isReceptionist: e.target.checked})} /> Receptionist
+              <input type="checkbox" checked={data.isReceptionist} onChange={e => { setData({...data, isReceptionist: e.target.checked}); if(errors.roles) setErrors({...errors, roles: ''}); }} /> Receptionist
             </label>
+            {errors.roles && <small style={{ display: 'block', color: 'red', marginTop: 5 }}>{errors.roles}</small>}
         </div>
 
         {data.isTech && (

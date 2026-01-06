@@ -4,86 +4,87 @@ import { Staff } from './shared/types';
 import { StaffManager } from './StaffManager';
 import { MarketingManager } from './MarketingManager';
 import { SettingsManager } from './SettingsManager';
+import { NumPadModal } from './components/NumPadModal';
 
-// 1. Update View Type
 type View = 'STAFF' | 'MARKETING' | 'SETTINGS';
 
 function App() {
-  // --- STATE ---
   const [currentUser, setCurrentUser] = useState<Staff | null>(null);
   const [pin, setPin] = useState('');
   const [error, setError] = useState('');
-  
-  // Navigation State
+  const [showPad, setShowPad] = useState(false);
   const [currentView, setCurrentView] = useState<View>('STAFF');
 
-  // --- LOGIN LOGIC ---
-  const handleLogin = async () => {
+  const handleLogin = async (inputPin: string = pin) => {
     setError('');
-    const user = await window.api.verifyOwner(pin);
+    const user = await window.api.verifyOwner(inputPin);
     
     if (user) {
         setCurrentUser(user);
+        setPin(''); 
     } else {
         setError('Invalid PIN or not an Owner.');
+        setPin(''); 
     }
   };
 
-  // --- VIEW: LOGIN SCREEN ---
   if (!currentUser) {
     return (
       <div className="container login-screen">
         <h1>Nail POS System</h1>
         <p>Please enter Owner PIN to continue</p>
         
-        <input 
-          type="password" 
-          value={pin} 
-          onChange={(e) => setPin(e.target.value)}
-          placeholder="Enter PIN"
-          onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
+        <div style={{ maxWidth: 300, margin: '0 auto' }}>
+            {/* ReadOnly input triggers NumPad */}
+            <input 
+              type="password" 
+              value={pin} 
+              readOnly 
+              placeholder="Tap to enter PIN"
+              onClick={() => setShowPad(true)}
+              style={{ width: '100%', textAlign: 'center', height: 45, fontSize: '1.2em', cursor: 'pointer' }}
+            />
+            
+            <button 
+                onClick={() => handleLogin(pin)} 
+                style={{ width: '100%', marginTop: 15, padding: 12 }}
+            >
+                Login
+            </button>
+            
+            {error && <p style={{ color: '#ef4444', marginTop: 15, fontWeight: 'bold' }}>{error}</p>}
+        </div>
+
+        <NumPadModal 
+            isOpen={showPad}
+            title="Enter Owner PIN"
+            isSecure={true}
+            onClose={() => setShowPad(false)}
+            onSubmit={(val) => {
+                setPin(val);
+                setShowPad(false);
+                handleLogin(val);
+            }}
         />
-        <button onClick={handleLogin}>Login</button>
-        
-        {error && <p style={{ color: 'red', marginTop: 10 }}>{error}</p>}
       </div>
     );
   }
 
-  // --- VIEW: DASHBOARD ---
   return (
     <div className="container">
-        {/* HEADER */}
         <header style={{ marginBottom: 20, borderBottom: '1px solid #e5e7eb', paddingBottom: 15 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 }}>
                 <h1>Owner Dashboard</h1>
                 <button className="secondary" onClick={() => setCurrentUser(null)}>Logout</button>
             </div>
             
-            {/* NAVIGATION */}
             <nav style={{ display: 'flex', gap: 10 }}>
-                <button 
-                    className={currentView === 'STAFF' ? '' : 'secondary'} 
-                    onClick={() => setCurrentView('STAFF')}
-                >
-                    Staff
-                </button>
-                <button 
-                    className={currentView === 'MARKETING' ? '' : 'secondary'}
-                    onClick={() => setCurrentView('MARKETING')}
-                >
-                    Marketing
-                </button>
-                <button 
-                    className={currentView === 'SETTINGS' ? '' : 'secondary'}
-                    onClick={() => setCurrentView('SETTINGS')}
-                >
-                    Settings
-                </button>
+                <button className={currentView === 'STAFF' ? '' : 'secondary'} onClick={() => setCurrentView('STAFF')}>Staff</button>
+                <button className={currentView === 'MARKETING' ? '' : 'secondary'} onClick={() => setCurrentView('MARKETING')}>Marketing</button>
+                <button className={currentView === 'SETTINGS' ? '' : 'secondary'} onClick={() => setCurrentView('SETTINGS')}>Settings</button>
             </nav>
         </header>
 
-        {/* VIEW RENDERER */}
         {currentView === 'STAFF' && <StaffManager />}
         {currentView === 'MARKETING' && <MarketingManager />}
         {currentView === 'SETTINGS' && <SettingsManager />}
