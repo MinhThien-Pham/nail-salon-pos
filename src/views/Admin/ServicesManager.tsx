@@ -10,6 +10,9 @@ export function ServicesManager() {
     const [showTypeForm, setShowTypeForm] = useState(false);
     const [addingServiceToTypeId, setAddingServiceToTypeId] = useState<number | null>(null);
 
+    // Feedback State
+    const [feedback, setFeedback] = useState<{ text: string, type: 'success' | 'error' } | null>(null);
+
     // Edit State
     const [editingTypeId, setEditingTypeId] = useState<number | null>(null);
     const [editTypeName, setEditTypeName] = useState('');
@@ -26,6 +29,14 @@ export function ServicesManager() {
     useEffect(() => {
         loadData();
     }, []);
+
+    // Auto-dismiss feedback
+    useEffect(() => {
+        if (feedback) {
+            const timer = setTimeout(() => setFeedback(null), 3000);
+            return () => clearTimeout(timer);
+        }
+    }, [feedback]);
 
     const loadData = async () => {
         const t = await window.api.getServiceTypes();
@@ -48,10 +59,15 @@ export function ServicesManager() {
 
     const handleCreateType = async () => {
         if (!newTypeName.trim()) return;
-        await window.api.createServiceType(newTypeName);
-        setNewTypeName('');
-        setShowTypeForm(false);
-        loadData();
+        try {
+            await window.api.createServiceType(newTypeName);
+            setNewTypeName('');
+            setShowTypeForm(false);
+            setFeedback({ text: 'Category created successfully.', type: 'success' });
+            loadData();
+        } catch (e) {
+            setFeedback({ text: 'Failed to create category.', type: 'error' });
+        }
     };
 
     const startEditType = (t: ServiceType, e: React.MouseEvent) => {
@@ -63,17 +79,27 @@ export function ServicesManager() {
     const saveType = async (e: React.MouseEvent) => {
         e.stopPropagation();
         if (editingTypeId && editTypeName.trim()) {
-            await window.api.updateServiceType(editingTypeId, editTypeName);
-            setEditingTypeId(null);
-            loadData();
+            try {
+                await window.api.updateServiceType(editingTypeId, editTypeName);
+                setEditingTypeId(null);
+                setFeedback({ text: 'Category updated.', type: 'success' });
+                loadData();
+            } catch (err) {
+                setFeedback({ text: 'Failed to update category.', type: 'error' });
+            }
         }
     };
 
     const handleDeleteType = async (id: number, e: React.MouseEvent) => {
         e.stopPropagation();
         if (confirm("Delete this Category? All services inside it will be deleted.")) {
-            await window.api.deleteServiceType(id);
-            loadData();
+            try {
+                await window.api.deleteServiceType(id);
+                setFeedback({ text: 'Category deleted.', type: 'success' });
+                loadData();
+            } catch (err) {
+                setFeedback({ text: 'Failed to delete category.', type: 'error' });
+            }
         }
     };
 
@@ -93,18 +119,23 @@ export function ServicesManager() {
     const handleCreateService = async () => {
         if (!newServiceName.trim() || !newServicePrice || !addingServiceToTypeId) return;
         
-        await window.api.createService({
-            typeId: addingServiceToTypeId,
-            name: newServiceName,
-            priceCents: Math.round(parseFloat(newServicePrice) * 100),
-            durationMin: parseInt(newServiceDuration) || 0
-        });
+        try {
+            await window.api.createService({
+                typeId: addingServiceToTypeId,
+                name: newServiceName,
+                priceCents: Math.round(parseFloat(newServicePrice) * 100),
+                durationMin: parseInt(newServiceDuration) || 0
+            });
 
-        setAddingServiceToTypeId(null);
-        setNewServiceName('');
-        setNewServicePrice('');
-        setNewServiceDuration('');
-        loadData();
+            setAddingServiceToTypeId(null);
+            setNewServiceName('');
+            setNewServicePrice('');
+            setNewServiceDuration('');
+            setFeedback({ text: 'Service added successfully.', type: 'success' });
+            loadData();
+        } catch (err) {
+            setFeedback({ text: 'Failed to add service.', type: 'error' });
+        }
     };
 
     const startEditService = (s: Service) => {
@@ -118,31 +149,52 @@ export function ServicesManager() {
 
     const saveService = async () => {
         if (editingServiceId && editServiceData.name.trim()) {
-            await window.api.updateService(editingServiceId, {
-                name: editServiceData.name,
-                priceCents: Math.round(parseFloat(editServiceData.price) * 100),
-                durationMin: parseInt(editServiceData.duration) || 0
-            });
-            setEditingServiceId(null);
-            loadData();
+            try {
+                await window.api.updateService(editingServiceId, {
+                    name: editServiceData.name,
+                    priceCents: Math.round(parseFloat(editServiceData.price) * 100),
+                    durationMin: parseInt(editServiceData.duration) || 0
+                });
+                setEditingServiceId(null);
+                setFeedback({ text: 'Service updated.', type: 'success' });
+                loadData();
+            } catch (err) {
+                setFeedback({ text: 'Failed to update service.', type: 'error' });
+            }
         }
     };
 
     const handleDeleteService = async (id: number) => {
         if (confirm("Delete this service?")) {
-            await window.api.deleteService(id);
-            loadData();
+            try {
+                await window.api.deleteService(id);
+                setFeedback({ text: 'Service deleted.', type: 'success' });
+                loadData();
+            } catch (err) {
+                setFeedback({ text: 'Failed to delete service.', type: 'error' });
+            }
         }
     };
 
     return (
         <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-                <h2>Service Menu</h2>
+                <h2><strong>Service Menu</strong></h2>
                 <button onClick={() => setShowTypeForm(!showTypeForm)}>
                     {showTypeForm ? 'Cancel' : '+ Add Category'}
                 </button>
             </div>
+
+            {/* FEEDBACK BANNER */}
+            {feedback && (
+                <div style={{ 
+                    marginBottom: 20, padding: 10, borderRadius: 6, 
+                    background: feedback.type === 'error' ? '#fee2e2' : '#dcfce7',
+                    color: feedback.type === 'error' ? '#b91c1c' : '#166534'
+                }}>
+                    {feedback.text}
+                </div>
+            )}
 
             {/* NEW CATEGORY FORM */}
             {showTypeForm && (
@@ -217,7 +269,6 @@ export function ServicesManager() {
                                         </>
                                     ) : (
                                         <>
-                                            {/* CHANGED: Green Add Button */}
                                             <button 
                                                 style={{ fontSize: '0.8em', padding: '4px 8px', backgroundColor: '#059669', color: 'white' }}
                                                 onClick={(e) => startAddService(type.serviceTypeId, e)}
@@ -278,13 +329,11 @@ export function ServicesManager() {
                                             <tbody>
                                                 {typeServices.map((s, index) => {
                                                     const isEditing = editingServiceId === s.serviceId;
-                                                    // CHANGED: Alternating row colors
                                                     const rowBg = index % 2 === 0 ? 'white' : '#f9fafb';
                                                     
                                                     return (
                                                         <tr key={s.serviceId} style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: isEditing ? '#fff7ed' : rowBg }}>
                                                             {isEditing ? (
-                                                                // EDIT MODE ROW (Styled Inputs)
                                                                 <>
                                                                     <td style={{ padding: '8px 15px' }}>
                                                                         <input 
@@ -317,7 +366,6 @@ export function ServicesManager() {
                                                                     </td>
                                                                 </>
                                                             ) : (
-                                                                // VIEW MODE ROW
                                                                 <>
                                                                     <td style={{ padding: '10px 15px', fontWeight: 500, color: '#374151' }}>{s.name}</td>
                                                                     <td style={{ padding: '10px 15px', color: '#6b7280' }}>{s.durationMin} min</td>

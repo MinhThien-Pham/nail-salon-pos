@@ -1,96 +1,90 @@
 // src/App.tsx
 import { useState } from 'react';
-import { Staff } from './shared/types';
-import { StaffManager } from './views/Admin/StaffManager';
-import { MarketingManager } from './views/Admin/MarketingManager';
-import { SettingsManager } from './views/Admin/SettingsManager';
-import { ServicesManager } from './views/Admin/ServicesManager';
-import { NumPadModal } from './components/NumPadModal';
-
-type View = 'STAFF' | 'SERVICES' | 'MARKETING' | 'SETTINGS';
+import { Sidebar } from './components/Sidebar';
+import { PinModal } from './components/PinModal';
+import { AdminDashboard, AdminTabBar, type AdminView } from './views/Admin/AdminDashboard';
 
 function App() {
-  const [currentUser, setCurrentUser] = useState<Staff | null>(null);
-  const [pin, setPin] = useState('');
-  const [error, setError] = useState('');
-  const [showPad, setShowPad] = useState(false);
-  const [currentView, setCurrentView] = useState<View>('STAFF');
+  const [view, setView] = useState('LIST'); // 'LIST' | 'BOXES' | 'ADMIN'
+  const [showPinModal, setShowPinModal] = useState(false);
 
-  const handleLogin = async (inputPin: string = pin) => {
-    setError('');
-    const user = await window.api.verifyOwner(inputPin);
-    
-    if (user) {
-        setCurrentUser(user);
-        setPin(''); 
-    } else {
-        setError('Invalid PIN or not an Owner.');
-        setPin(''); 
+  // Admin tabs state lives here now so we can render tabs in the header
+  const [adminView, setAdminView] = useState<AdminView>('STAFF');
+
+  const handlePinSubmit = async (pin: string) => {
+    try {
+      const isValid = await window.api.verifyOwner(pin);
+      if (isValid) {
+        setView('ADMIN');
+        return true;
+      }
+      return false;
+    } catch (e) {
+      console.error(e);
+      return false;
     }
   };
 
-  if (!currentUser) {
-    return (
-      <div className="container login-screen">
-        <h1>Nail POS System</h1>
-        <p>Please enter Owner PIN to continue</p>
-        
-        <div style={{ maxWidth: 300, margin: '0 auto' }}>
-            {/* ReadOnly input triggers NumPad */}
-            <input 
-              type="password" 
-              value={pin} 
-              readOnly 
-              placeholder="Tap to enter PIN"
-              onClick={() => setShowPad(true)}
-              style={{ width: '100%', textAlign: 'center', height: 45, fontSize: '1.2em', cursor: 'pointer' }}
-            />
-            
-            <button 
-                onClick={() => handleLogin(pin)} 
-                style={{ width: '100%', marginTop: 15, padding: 12 }}
-            >
-                Login
-            </button>
-            
-            {error && <p style={{ color: '#ef4444', marginTop: 15, fontWeight: 'bold' }}>{error}</p>}
-        </div>
-
-        <NumPadModal 
-            isOpen={showPad}
-            title="Enter Owner PIN"
-            isSecure={true}
-            onClose={() => setShowPad(false)}
-            onSubmit={(val) => {
-                setPin(val);
-                setShowPad(false);
-                handleLogin(val);
-            }}
-        />
-      </div>
-    );
-  }
+  const getTitle = () => {
+    switch (view) {
+      case 'LIST': return 'Queue Management';
+      case 'BOXES': return 'Technician Boxes';
+      case 'ADMIN': return 'Owner Dashboard';
+      default: return 'Salon POS';
+    }
+  };
 
   return (
-    <div className="container">
-        <header style={{ marginBottom: 20, borderBottom: '1px solid #e5e7eb', paddingBottom: 15 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 }}>
-                <h1>Owner Dashboard</h1>
-                <button className="secondary" onClick={() => setCurrentUser(null)}>Logout</button>
-            </div>
-            
-            <nav style={{ display: 'flex', gap: 10 }}>
-                <button className={currentView === 'STAFF' ? '' : 'secondary'} onClick={() => setCurrentView('STAFF')}>Staff</button>
-                <button className={currentView === 'SERVICES' ? '' : 'secondary'} onClick={() => setCurrentView('SERVICES')}>Services</button>
-                <button className={currentView === 'MARKETING' ? '' : 'secondary'} onClick={() => setCurrentView('MARKETING')}>Marketing</button>
-                <button className={currentView === 'SETTINGS' ? '' : 'secondary'} onClick={() => setCurrentView('SETTINGS')}>Settings</button>
-            </nav>
-        </header>
+    <div className="flex h-screen bg-slate-50 text-slate-900 font-sans">
+      <Sidebar
+        activeView={view}
+        onNavigate={setView}
+        onSettingsClick={() => setShowPinModal(true)}
+      />
 
-        {currentView === 'STAFF' && <StaffManager />}
-        {currentView === 'SERVICES' && <ServicesManager />}
-        {currentView === 'MARKETING' && <MarketingManager />}
-        {currentView === 'SETTINGS' && <SettingsManager />}
+      <main className="flex-1 overflow-hidden relative flex flex-col">
+        {/* Universal Header */}
+        <div className="h-16 border-b border-slate-200 bg-white px-6 flex items-center justify-between shadow-sm z-10 shrink-0">
+          <h1 className="text-xl font-bold text-slate-800 shrink-0">
+            {getTitle()}
+          </h1>
+
+          {/* Admin tabs inline with Owner Dashboard (right side) */}
+          {view === 'ADMIN' && (
+            <div className="ml-4 flex-1 min-w-0 flex justify-end">
+              <AdminTabBar currentView={adminView} onChange={setAdminView} />
+            </div>
+          )}
+        </div>
+
+        {/* Scrollable Content Area */}
+        <div className="flex-1 overflow-auto bg-slate-50">
+          {view === 'LIST' && (
+            <div className="p-6 flex items-center justify-center h-full text-slate-400">
+              Turn List View (Coming Next)
+            </div>
+          )}
+
+          {view === 'BOXES' && (
+            <div className="p-6 flex items-center justify-center h-full text-slate-400">
+              Boxes View (Coming Next)
+            </div>
+          )}
+
+          {view === 'ADMIN' && (
+            <div className="p-6 h-full">
+              <AdminDashboard currentView={adminView} />
+            </div>
+          )}
+        </div>
+      </main>
+
+      <PinModal
+        open={showPinModal}
+        onClose={() => setShowPinModal(false)}
+        onSubmit={handlePinSubmit}
+        title="Admin Access"
+      />
     </div>
   );
 }

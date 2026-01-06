@@ -371,7 +371,6 @@ export class AppDatabase {
             roles: JSON.stringify(staff.roles),
             pin: staff.pin,
             isActive: staff.isActive ? 1 : 0,
-            // FIX: Ensure this is never null, so it hits the TEXT column correctly
             skillsTypeIds: JSON.stringify(staff.skillsTypeIds || []),
             commissionTechRate: staff.payroll?.commissionTechRate || 0,
             payoutCheckRate: staff.payroll?.payoutCheckRate || 0,
@@ -385,7 +384,6 @@ export class AppDatabase {
             UPDATE staff SET 
                 name = COALESCE(@name, name), 
                 roles = COALESCE(@roles, roles), 
-                pin = COALESCE(@pin, pin), 
                 isActive = COALESCE(@isActive, isActive), 
                 skillsTypeIds = COALESCE(@skillsTypeIds, skillsTypeIds), 
                 commissionTechRate = COALESCE(@commissionTechRate, commissionTechRate), 

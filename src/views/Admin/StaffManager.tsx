@@ -1,23 +1,33 @@
-// src/StaffManager.tsx
 import { useState, useEffect } from 'react';
 import { Staff, Role, ServiceType } from '../../shared/types';
-import { NumPadModal } from '../../components/NumPadModal';
+import { PinModal } from '../../components/PinModal';
 
 export function StaffManager() {
   const [staffList, setStaffList] = useState<Staff[]>([]);
-  const [serviceTypes, setServiceTypes] = useState<ServiceType[]>([]); // Store types here
+  const [serviceTypes, setServiceTypes] = useState<ServiceType[]>([]);
   
   // UI State
   const [isCreating, setIsCreating] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   
-  // PIN Change State (using NumPad)
+  // Feedback State
+  const [feedback, setFeedback] = useState<{ text: string, type: 'success' | 'error' } | null>(null);
+
+  // PIN Change State
   const [changingPinId, setChangingPinId] = useState<number | null>(null);
   const [showPinPad, setShowPinPad] = useState(false);
 
   useEffect(() => {
     loadData();
   }, []);
+
+  // Auto-dismiss feedback
+  useEffect(() => {
+    if (feedback) {
+      const timer = setTimeout(() => setFeedback(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [feedback]);
 
   const loadData = async () => {
     const list = await window.api.getAllStaff();
@@ -29,48 +39,65 @@ export function StaffManager() {
   };
 
   const handleSave = async (data: any) => {
-    if (editingId) {
-      await window.api.updateStaff(editingId, data);
-      setEditingId(null);
-    } else {
-      await window.api.createStaff({ ...data, pin: '000000' });
-      setIsCreating(false);
+    try {
+        if (editingId) {
+            await window.api.updateStaff(editingId, data);
+            setEditingId(null);
+            setFeedback({ text: 'Staff member updated successfully.', type: 'success' });
+        } else {
+            await window.api.createStaff({ ...data, pin: '000000' });
+            setIsCreating(false);
+            setFeedback({ text: 'New staff member created.', type: 'success' });
+        }
+        loadData();
+    } catch (e) {
+        setFeedback({ text: 'Error saving staff member.', type: 'error' });
     }
-    loadData();
   };
 
   const handleDelete = async (id: number) => {
     if (confirm("Are you sure you want to delete this staff member?")) {
-      await window.api.deleteStaff(id);
-      loadData();
+        try {
+            await window.api.deleteStaff(id);
+            setFeedback({ text: 'Staff member deleted.', type: 'success' });
+            loadData();
+        } catch (e) {
+            setFeedback({ text: 'Failed to delete staff member.', type: 'error' });
+        }
     }
   };
 
   const startPinChange = (id: number) => {
-    setChangingPinId(id);
-    setShowPinPad(true);
+      setChangingPinId(id);
+      setShowPinPad(true);
   };
 
-  const handlePinUpdate = async (newPin: string) => {
-    if (changingPinId && newPin.length >= 4) {
-      try {
-          await window.api.adminSetPin(changingPinId, newPin);
-          setChangingPinId(null);
-          setShowPinPad(false);
-          loadData();
-      } catch (err) {
-          console.error("Failed to update PIN", err);
+  const handlePinUpdate = async (newPin: string): Promise<boolean> => {
+      if (changingPinId && newPin.length >= 4) {
+          try {
+              await window.api.adminSetPin(changingPinId, newPin);
+              // REPLACED ALERT
+              setFeedback({ text: 'PIN updated successfully.', type: 'success' });
+              
+              setChangingPinId(null);
+              loadData(); 
+              return true; // Success: Close modal
+          } catch (err) {
+              setFeedback({ text: 'Failed to update PIN.', type: 'error' });
+              return false; // Fail: Keep modal open
+          }
       }
-    }
+      return false;
   };
 
+  // --- Render Helpers ---
   const renderStaffItem = (s: Staff) => {
     if (editingId === s.staffId) {
       return (
         <div key={s.staffId} style={{ marginBottom: 15, border: '1px solid #3b82f6', padding: 10, borderRadius: 6 }}>
           <StaffForm 
             initialData={s} 
-            serviceTypes={serviceTypes} // Pass types to form
+            serviceTypes={serviceTypes} 
             onSave={handleSave} 
             onCancel={() => setEditingId(null)} 
           />
@@ -105,7 +132,7 @@ export function StaffManager() {
             <button className="secondary" style={{ padding: '4px 8px', fontSize: '0.8em' }} onClick={() => setEditingId(s.staffId)}>
                Edit
             </button>
-            <button style={{ backgroundColor: '#ef4444', padding: '4px 8px', fontSize: '0.8em' }} onClick={() => handleDelete(s.staffId)}>
+            <button style={{ backgroundColor: '#ef4444', color: 'white', padding: '4px 8px', fontSize: '0.8em', border: 'none', borderRadius: 4, cursor: 'pointer' }} onClick={() => handleDelete(s.staffId)}>
                Del
             </button>
           </div>
@@ -117,36 +144,45 @@ export function StaffManager() {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 }}>
-        <h2>Staff Management</h2>
-        {!isCreating && !editingId && (
-           <button onClick={() => setIsCreating(true)}>+ Add New Staff</button>
-        )}
+          <h2><strong>Staff Management</strong></h2>
+          {!isCreating && !editingId && (
+             <button className="primary" onClick={() => setIsCreating(true)}>+ Add New Staff</button>
+          )}
       </div>
 
-      {isCreating && (
-        <div className="form-section" style={{ border: '2px solid #3b82f6' }}>
-           <h4 style={{ marginTop: 0 }}>New Staff Member</h4>
-           <StaffForm 
-             onSave={handleSave} 
-             serviceTypes={serviceTypes} // Pass types to form
-             onCancel={() => setIsCreating(false)} 
-            />
+      {/* FEEDBACK BANNER */}
+      {feedback && (
+        <div style={{ 
+            marginBottom: 20, padding: 10, borderRadius: 6, 
+            background: feedback.type === 'error' ? '#fee2e2' : '#dcfce7',
+            color: feedback.type === 'error' ? '#b91c1c' : '#166534'
+        }}>
+            {feedback.text}
         </div>
       )}
 
+      {isCreating && (
+          <div className="form-section" style={{ border: '2px solid #3b82f6', padding: 15, borderRadius: 8, marginBottom: 20 }}>
+             <h4 style={{ marginTop: 0 }}>New Staff Member</h4>
+             <StaffForm 
+               onSave={handleSave} 
+               serviceTypes={serviceTypes} 
+               onCancel={() => setIsCreating(false)} 
+              />
+          </div>
+      )}
+
       <div className="form-section">
-         <h4 style={{ color: '#059669', borderBottom: '2px solid #059669', paddingBottom: 5, marginTop: 0 }}>Active Team</h4>
+         <h4 style={{ color: '#166534', borderBottom: '2px solid #22c55e', paddingBottom: 5, marginTop: 0 }}><strong>🟢 Active</strong></h4>
          {staffList.filter(s => s.isActive).map(renderStaffItem)}
 
-         <h4 style={{ color: '#6b7280', borderBottom: '2px solid #6b7280', paddingBottom: 5, marginTop: 20 }}>Inactive</h4>
+         <h4 style={{ color: '#6b7280', borderBottom: '2px solid #6b7280', paddingBottom: 5, marginTop: 20 }}><strong>⚪ Inactive</strong></h4>
          {staffList.filter(s => !s.isActive).map(renderStaffItem)}
       </div>
 
-      {/* NUMPAD FOR STAFF PIN CHANGE */}
-      <NumPadModal 
-        isOpen={showPinPad}
+      <PinModal 
+        open={showPinPad}
         title="Enter New Staff PIN"
-        isSecure={true}
         onClose={() => setShowPinPad(false)}
         onSubmit={handlePinUpdate}
       />
@@ -154,6 +190,7 @@ export function StaffManager() {
   );
 }
 
+// --- The Form Component (No Changes Needed Here, but including for completeness) ---
 function StaffForm({ initialData, serviceTypes, onSave, onCancel }: { initialData?: Staff, serviceTypes: ServiceType[], onSave: (d: any) => void, onCancel: () => void }) {
   const defaultState = {
     name: '',
@@ -180,7 +217,6 @@ function StaffForm({ initialData, serviceTypes, onSave, onCancel }: { initialDat
     return defaultState;
   });
 
-  // Validation State
   const [errors, setErrors] = useState<{name?: string, roles?: string}>({});
 
   useEffect(() => {
@@ -194,27 +230,6 @@ function StaffForm({ initialData, serviceTypes, onSave, onCancel }: { initialDat
       });
     }
   }, [data.isTech]);
-
-  // Pill Button Helper (Copied style from MarketingManager)
-  const renderSkillButton = (label: string, isSelected: boolean, onClick: () => void) => (
-    <button 
-        key={label} 
-        onClick={onClick}
-        style={{ 
-            marginRight: 6,
-            marginBottom: 6,
-            padding: '4px 10px',
-            borderRadius: '15px',
-            border: isSelected ? '1px solid #2563eb' : '1px solid #d1d5db',
-            backgroundColor: isSelected ? '#eff6ff' : 'white',
-            color: isSelected ? '#1e40af' : '#374151',
-            fontSize: '0.85em',
-            cursor: 'pointer'
-        }}
-    >
-        {label}
-    </button>
-  );
 
   const toggleSkill = (id: number) => {
     const current = data.skillsTypeIds;
@@ -254,7 +269,7 @@ function StaffForm({ initialData, serviceTypes, onSave, onCancel }: { initialDat
         name: data.name,
         roles,
         isActive: data.isActive,
-        skillsTypeIds: data.isTech ? data.skillsTypeIds : [], // Only save skills if Tech
+        skillsTypeIds: data.isTech ? data.skillsTypeIds : [],
         payroll
     };
     
@@ -269,7 +284,7 @@ function StaffForm({ initialData, serviceTypes, onSave, onCancel }: { initialDat
                 value={data.name} 
                 onChange={e => { setData({...data, name: e.target.value}); if(errors.name) setErrors({...errors, name: ''}); }} 
                 placeholder="Jane Doe" 
-                style={{ borderColor: errors.name ? 'red' : undefined }}
+                style={{ borderColor: errors.name ? 'red' : undefined, width: '100%', padding: 8 }}
             />
             {errors.name && <small style={{ color: 'red' }}>{errors.name}</small>}
         </div>
@@ -285,15 +300,26 @@ function StaffForm({ initialData, serviceTypes, onSave, onCancel }: { initialDat
             {errors.roles && <small style={{ display: 'block', color: 'red', marginTop: 5 }}>{errors.roles}</small>}
         </div>
 
-        {/* SKILLS SECTION (Only for Techs) */}
         {data.isTech && (
             <div className="form-group" style={{ gridColumn: 'span 2' }}>
                 <label style={{display:'block', marginBottom: 5}}>Skill Set:</label>
-                <div style={{ display: 'flex', flexWrap: 'wrap' }}>
-                    {serviceTypes.length === 0 && <span style={{color:'#666', fontSize:'0.9em'}}>No Service Categories found. Add them in Services tab.</span>}
-                    {serviceTypes.map(t => 
-                        renderSkillButton(t.name, data.skillsTypeIds.includes(t.serviceTypeId), () => toggleSkill(t.serviceTypeId))
-                    )}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                    {serviceTypes.map(t => (
+                        <button 
+                            key={t.serviceTypeId}
+                            onClick={() => toggleSkill(t.serviceTypeId)}
+                            style={{ 
+                                padding: '4px 10px', 
+                                borderRadius: '15px', 
+                                border: data.skillsTypeIds.includes(t.serviceTypeId) ? '1px solid #2563eb' : '1px solid #d1d5db',
+                                backgroundColor: data.skillsTypeIds.includes(t.serviceTypeId) ? '#eff6ff' : 'white',
+                                color: data.skillsTypeIds.includes(t.serviceTypeId) ? '#1e40af' : '#374151',
+                                cursor: 'pointer'
+                            }}
+                        >
+                            {t.name}
+                        </button>
+                    ))}
                 </div>
             </div>
         )}
@@ -302,11 +328,11 @@ function StaffForm({ initialData, serviceTypes, onSave, onCancel }: { initialDat
            <div style={{ gridColumn: 'span 2', background: '#eff6ff', padding: 10, borderRadius: 4, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
               <div className="form-group">
                 <label>Commission Rate (0-1):</label>
-                <input type="number" step="0.01" value={data.commRate} onChange={e => setData({...data, commRate: e.target.value})} />
+                <input type="number" step="0.01" value={data.commRate} onChange={e => setData({...data, commRate: e.target.value})} style={{width: '100%', padding: 8}} />
               </div>
               <div className="form-group">
                 <label>Check Payout Rate (0-1):</label>
-                <input type="number" step="0.01" value={data.checkRate} onChange={e => setData({...data, checkRate: e.target.value})} />
+                <input type="number" step="0.01" value={data.checkRate} onChange={e => setData({...data, checkRate: e.target.value})} style={{width: '100%', padding: 8}} />
               </div>
            </div>
         )}
@@ -319,7 +345,7 @@ function StaffForm({ initialData, serviceTypes, onSave, onCancel }: { initialDat
         </div>
 
         <div style={{ gridColumn: 'span 2', marginTop: 5, display: 'flex', gap: 10 }}>
-            <button onClick={handleSubmit}>Save Staff</button>
+            <button className="primary" onClick={handleSubmit}>Save Staff</button>
             <button className="secondary" onClick={onCancel}>Cancel</button>
         </div>
     </div>

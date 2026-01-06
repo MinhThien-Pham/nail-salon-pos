@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Settings } from '../../shared/types';
-import { NumPadModal } from '../../components/NumPadModal';
+import { PinModal } from '../../components/PinModal';
 
 export function SettingsManager() {
   const [settings, setSettings] = useState<Settings | null>(null);
@@ -15,7 +15,7 @@ export function SettingsManager() {
   const [isEditingPayroll, setIsEditingPayroll] = useState(false);
   const [isEditingLoyalty, setIsEditingLoyalty] = useState(false);
 
-  // --- Draft States (Holds changes before Save) ---
+  // --- Draft States ---
   const [payrollDraft, setPayrollDraft] = useState<Partial<Settings>>({});
   const [loyaltyDraft, setLoyaltyDraft] = useState<Partial<Settings>>({});
 
@@ -56,7 +56,6 @@ export function SettingsManager() {
   // --- LOYALTY HANDLERS ---
   const startEditLoyalty = () => {
     if (!settings) return;
-    // Deep copy loyalty config to avoid reference issues
     setLoyaltyDraft({
         loyaltyEarn: JSON.parse(JSON.stringify(settings.loyaltyEarn))
     });
@@ -84,34 +83,34 @@ export function SettingsManager() {
     setShowPinModal(true);
   };
 
-  const handlePinSubmit = async (val: string) => {
+  const handlePinSubmit = async (val: string): Promise<boolean> => {
     if (pinStep === 'VERIFY_OLD') {
         try {
             const isValid = await window.api.verifyOwner(val);
             if (isValid) {
                 setTempOldPin(val);
                 setPinStep('ENTER_NEW');
+                setTimeout(() => setShowPinModal(true), 100);
+                return true; 
             } else {
-                setShowPinModal(false);
                 setPinMessage({ text: 'Incorrect current PIN.', type: 'error' });
+                return false; 
             }
         } catch (e) {
-            setShowPinModal(false);
             setPinMessage({ text: 'Error verifying PIN.', type: 'error' });
+            return false;
         }
     } else {
         if (val.length < 4) {
-            setShowPinModal(false);
             setPinMessage({ text: 'New PIN too short (min 4).', type: 'error' });
-            return;
+            return false;
         }
         await window.api.changeOwnPin(1, tempOldPin, val); 
-        setShowPinModal(false);
         setPinMessage({ text: 'Owner PIN updated successfully.', type: 'success' });
+        return true; 
     }
   };
 
-  // Helper for rendering
   const nextPayDate = settings ? calculateNextPayDate(
       isEditingPayroll ? payrollDraft.periodStartDate! : settings.periodStartDate, 
       isEditingPayroll ? payrollDraft.periodDays! : settings.periodDays
@@ -121,33 +120,22 @@ export function SettingsManager() {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-        <h2>System Settings</h2>
-        {/* Global Save Removed - using per-section save */}
-      </div>
-      
-      {/* Feedback Message Area */}
       {pinMessage.text && (
-        <div style={{ 
-            marginBottom: 20, padding: 10, borderRadius: 6, 
-            background: pinMessage.type === 'error' ? '#fee2e2' : '#dcfce7',
-            color: pinMessage.type === 'error' ? '#b91c1c' : '#166534'
-        }}>
+        <div style={{ marginBottom: 20, padding: 10, borderRadius: 6, background: pinMessage.type === 'error' ? '#fee2e2' : '#dcfce7', color: pinMessage.type === 'error' ? '#b91c1c' : '#166534' }}>
             {pinMessage.text}
         </div>
       )}
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
         
-        {/* 1. PAYROLL CONFIGURATION */}
+        {/* 1. PAYROLL */}
         <div className="form-section">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 }}>
-                <h3 style={{ margin: 0 }}>Payroll Configuration</h3>
+                <h3 style={{ margin: 0 }}><strong>Payroll Configuration</strong></h3>
                 {!isEditingPayroll && <button className="secondary" style={{padding: '4px 10px', fontSize: '0.8em'}} onClick={startEditPayroll}>Edit</button>}
             </div>
             
             {isEditingPayroll ? (
-                // --- EDIT MODE ---
                 <>
                     <div className="form-group">
                         <label>Pay Period Frequency (Days):</label>
@@ -175,7 +163,6 @@ export function SettingsManager() {
                     </div>
                 </>
             ) : (
-                // --- VIEW MODE ---
                 <div style={{ fontSize: '0.95em', lineHeight: '1.8' }}>
                     <div><strong>Frequency:</strong> {settings.periodDays} Days</div>
                     <div><strong>Starts On:</strong> {settings.periodStartDate}</div>
@@ -195,22 +182,17 @@ export function SettingsManager() {
         {/* RIGHT COLUMN */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
             
-            {/* 2. OWNER SECURITY (Always Active) */}
-            <div className="form-section" style={{ borderColor: '#fca5a5' }}>
-                <h3 style={{ marginTop: 0, color: '#b91c1c' }}>Owner Security</h3>
-                <p style={{ fontSize: '0.9em', color: '#666' }}>Manage Master PIN access.</p>
-                <button onClick={startPinChange} style={{ background: '#ef4444' }}>Change Owner PIN</button>
-            </div>
+            {/* 2. OWNER SECURITY */}
+            <button onClick={startPinChange} style={{ background: '#ef4444', color: 'white', border: 'none', padding: '8px 16px', borderRadius: 4, cursor: 'pointer' }}>Change Owner PIN</button>
 
             {/* 3. LOYALTY RULES */}
             <div className="form-section">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 }}>
-                    <h3 style={{ margin: 0 }}>Loyalty Rules</h3>
+                    <h3 style={{ margin: 0 }}><strong>Loyalty Rules</strong></h3>
                     {!isEditingLoyalty && <button className="secondary" style={{padding: '4px 10px', fontSize: '0.8em'}} onClick={startEditLoyalty}>Edit</button>}
                 </div>
 
                 {isEditingLoyalty ? (
-                    // --- EDIT MODE ---
                     <>
                         <div style={{ marginBottom: 15 }}>
                             <label style={{ display: 'block', marginBottom: 5 }}>
@@ -266,6 +248,18 @@ export function SettingsManager() {
                                             })} 
                                         />
                                     </div>
+                                    {/* --- ADDED MISSING INPUT HERE --- */}
+                                    <div>
+                                        <label style={{ marginRight: 10 }}>Min. Spend (Cents):</label>
+                                        <input 
+                                            type="number" style={{ width: 80 }} 
+                                            value={loyaltyDraft.loyaltyEarn.minServiceCentsToCount} 
+                                            onChange={e => setLoyaltyDraft({
+                                                ...loyaltyDraft, 
+                                                loyaltyEarn: { ...loyaltyDraft.loyaltyEarn, minServiceCentsToCount: parseInt(e.target.value) } as any
+                                            })} 
+                                        />
+                                    </div>
                                 </div>
                             )}
                         </div>
@@ -275,22 +269,21 @@ export function SettingsManager() {
                         </div>
                     </>
                 ) : (
-                    // --- VIEW MODE ---
                     <div style={{ fontSize: '0.95em' }}>
                         <div style={{ marginBottom: 10 }}>
-                            <span style={{ color: '#666' }}>Strategy:</span> <br/>
-                            <strong>{settings.loyaltyEarn.mode === 'PER_DOLLAR' ? 'Earn per Dollar Spent' : 'Earn per Visit'}</strong>
+                            <strong>Strategy:</strong> <br/>
+                            <span>{settings.loyaltyEarn.mode === 'PER_DOLLAR' ? 'Earn per Dollar Spent' : 'Earn per Visit'}</span>
                         </div>
                         
                         {settings.loyaltyEarn.mode === 'PER_DOLLAR' ? (
                             <div>
-                                <span style={{ color: '#666' }}>Value:</span> <br/>
-                                <strong>{settings.loyaltyEarn.pointsPerDollarSpent} Points</strong> per $1.00
+                                <strong>Value:</strong> <br/>
+                                <span>{settings.loyaltyEarn.pointsPerDollarSpent} Points</span> per $1.00
                             </div>
                         ) : (
                             <div>
-                                <span style={{ color: '#666' }}>Value:</span> <br/>
-                                <strong>{settings.loyaltyEarn.pointsPerVisit} Points</strong> per Visit
+                                <strong>Value:</strong> <br/>
+                                <span>{settings.loyaltyEarn.pointsPerVisit} Points</span> per Visit (Min {settings.loyaltyEarn.minServiceCentsToCount}¢)
                             </div>
                         )}
                     </div>
@@ -299,10 +292,9 @@ export function SettingsManager() {
         </div>
       </div>
 
-      <NumPadModal 
-        isOpen={showPinModal}
+      <PinModal 
+        open={showPinModal}
         title={pinStep === 'VERIFY_OLD' ? "Enter Current PIN" : "Enter New PIN"}
-        isSecure={true}
         onClose={() => setShowPinModal(false)}
         onSubmit={handlePinSubmit}
       />

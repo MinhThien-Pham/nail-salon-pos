@@ -10,7 +10,18 @@ export function MarketingManager() {
   const [isCreatingRedemption, setIsCreatingRedemption] = useState(false);
   const [editingRedemptionId, setEditingRedemptionId] = useState<number | null>(null);
 
+  // Feedback State
+  const [feedback, setFeedback] = useState<{ text: string, type: 'success' | 'error' } | null>(null);
+
   useEffect(() => { loadData(); }, []);
+
+  // Auto-dismiss
+  useEffect(() => {
+    if (feedback) {
+        const timer = setTimeout(() => setFeedback(null), 3000);
+        return () => clearTimeout(timer);
+    }
+  }, [feedback]);
 
   const loadData = async () => {
     try {
@@ -28,39 +39,57 @@ export function MarketingManager() {
         if (editingPromoId) {
             await window.api.updatePromo(editingPromoId, data);
             setEditingPromoId(null);
+            setFeedback({ text: 'Promotion updated successfully.', type: 'success' });
         } else {
             await window.api.createPromo(data);
             setIsCreatingPromo(false);
+            setFeedback({ text: 'Promotion created.', type: 'success' });
         }
         loadData();
     } catch (e) {
-        console.error(e);
+        setFeedback({ text: 'Failed to save promotion.', type: 'error' });
     }
   };
 
   const handleDeletePromo = async (id: number) => {
     if (id <= 2) return; 
     if (confirm("Delete this promo?")) {
-        await window.api.deletePromo(id);
-        loadData();
+        try {
+            await window.api.deletePromo(id);
+            setFeedback({ text: 'Promotion deleted.', type: 'success' });
+            loadData();
+        } catch (e) {
+            setFeedback({ text: 'Failed to delete promotion.', type: 'error' });
+        }
     }
   };
 
   const handleSaveRedemption = async (data: any) => {
-     if (editingRedemptionId) {
-        await window.api.updateRedemption(editingRedemptionId, data);
-        setEditingRedemptionId(null);
-    } else {
-        await window.api.createRedemption(data);
-        setIsCreatingRedemption(false);
-    }
-    loadData();
+     try {
+        if (editingRedemptionId) {
+            await window.api.updateRedemption(editingRedemptionId, data);
+            setEditingRedemptionId(null);
+            setFeedback({ text: 'Redemption updated.', type: 'success' });
+        } else {
+            await window.api.createRedemption(data);
+            setIsCreatingRedemption(false);
+            setFeedback({ text: 'Redemption created.', type: 'success' });
+        }
+        loadData();
+     } catch (e) {
+         setFeedback({ text: 'Failed to save redemption.', type: 'error' });
+     }
   };
   
   const handleDeleteRedemption = async (id: number) => {
     if (confirm("Delete this reward?")) {
-        await window.api.deleteRedemption(id);
-        loadData();
+        try {
+            await window.api.deleteRedemption(id);
+            setFeedback({ text: 'Redemption deleted.', type: 'success' });
+            loadData();
+        } catch (e) {
+            setFeedback({ text: 'Failed to delete redemption.', type: 'error' });
+        }
     }
   };
 
@@ -127,7 +156,7 @@ export function MarketingManager() {
   });
 
   const renderAudienceBadges = (audience: Audience) => {
-      const items: React.ReactNode[] = []; // FIXED: Use React.ReactNode[]
+      const items: React.ReactNode[] = []; 
       if (audience?.tiers) {
           audience.tiers.forEach((t) => items.push(<span key={t} style={audienceStyle('TIER')}>{t}</span>));
       }
@@ -279,12 +308,23 @@ export function MarketingManager() {
 
   return (
     <div>
-        <h2>Marketing & Promotions</h2>
+        {/* FEEDBACK BANNER */}
+        {feedback && (
+            <div style={{ 
+                marginBottom: 20, padding: 10, borderRadius: 6, 
+                background: feedback.type === 'error' ? '#fee2e2' : '#dcfce7',
+                color: feedback.type === 'error' ? '#b91c1c' : '#166534'
+            }}>
+                {feedback.text}
+            </div>
+        )}
+
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginTop: 20 }}>
-            {/* --- PROMOS COLUMN --- */}
+            
+            {/* LEFT: PROMOTIONS */}
             <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                    <h3>Promotions</h3>
+                    <h2><strong>Promotions</strong></h2>
                     {!isCreatingPromo && !editingPromoId && <button onClick={() => setIsCreatingPromo(true)}>+ Add Promo</button>}
                 </div>
                 
@@ -294,7 +334,7 @@ export function MarketingManager() {
                     {/* LIVE NOW */}
                     {live.length > 0 && (
                         <div style={{ marginBottom: 20 }}>
-                            <h4 style={{ color: '#166534', borderBottom: '2px solid #22c55e', paddingBottom: 5, marginTop: 0 }}>🟢 Live Now</h4>
+                            <h3 style={{ color: '#166534', borderBottom: '2px solid #22c55e', paddingBottom: 5, marginTop: 0 }}><strong>🟢 Live Now</strong></h3>
                             {live.map(p => renderPromoItem(p, 'LIVE'))}
                         </div>
                     )}
@@ -302,7 +342,7 @@ export function MarketingManager() {
                     {/* SCHEDULED */}
                     {scheduled.length > 0 && (
                         <div style={{ marginBottom: 20 }}>
-                            <h4 style={{ color: '#1e40af', borderBottom: '2px solid #3b82f6', paddingBottom: 5, marginTop: 0 }}>⏳ Scheduled</h4>
+                            <h3 style={{ color: '#1e40af', borderBottom: '2px solid #3b82f6', paddingBottom: 5, marginTop: 0 }}><strong>⏳ Scheduled</strong></h3>
                             {scheduled.map(p => renderPromoItem(p, 'FUTURE'))}
                         </div>
                     )}
@@ -310,13 +350,13 @@ export function MarketingManager() {
                     {/* EXPIRED */}
                     {expired.length > 0 && (
                         <div style={{ marginBottom: 20 }}>
-                            <h4 style={{ color: '#92400e', borderBottom: '2px solid #f59e0b', paddingBottom: 5, marginTop: 0 }}>⚠️ Expired (Active)</h4>
+                            <h3 style={{ color: '#92400e', borderBottom: '2px solid #f59e0b', paddingBottom: 5, marginTop: 0 }}><strong>⚠️ Expired (Active)</strong></h3>
                             {expired.map(p => renderPromoItem(p, 'EXPIRED'))}
                         </div>
                     )}
 
                     {/* INACTIVE */}
-                    <h4 style={{ color: '#6b7280', borderBottom: '2px solid #6b7280', paddingBottom: 5, marginTop: 20 }}>⚪ Inactive</h4>
+                    <h3 style={{ color: '#6b7280', borderBottom: '2px solid #6b7280', paddingBottom: 5, marginTop: 20 }}><strong>⚪ Inactive</strong></h3>
                     {inactive.map(p => renderPromoItem(p, 'INACTIVE'))}
                     {inactive.length === 0 && <p style={{color:'#999', fontSize:'0.9em'}}>No inactive promos.</p>}
                 </div>
@@ -325,18 +365,18 @@ export function MarketingManager() {
             {/* --- REDEMPTIONS COLUMN --- */}
             <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                    <h3>Redemptions</h3>
+                    <h2><strong>Redemptions</strong></h2>
                     {!isCreatingRedemption && !editingRedemptionId && <button onClick={() => setIsCreatingRedemption(true)}>+ Add Redemption</button>}
                 </div>
                 
                 {isCreatingRedemption && <div className="form-section" style={{ border: '2px solid #3b82f6' }}><RedemptionForm onSave={handleSaveRedemption} onCancel={() => setIsCreatingRedemption(false)} /></div>}
 
                 <div className="form-section" style={{ background: '#f9fafb', border: '1px solid #e5e7eb' }}>
-                    <h4 style={{ color: '#166534', borderBottom: '2px solid #22c55e', paddingBottom: 5, marginTop: 0 }}>🟢 Active</h4>
+                    <h3 style={{ color: '#166534', borderBottom: '2px solid #22c55e', paddingBottom: 5, marginTop: 0 }}><strong>🟢 Active</strong></h3>
                     {redemptions.filter(r => r.isActive).map(renderRedemptionItem)}
                     {redemptions.filter(r => r.isActive).length === 0 && <p style={{color:'#999', fontSize:'0.9em'}}>No active rewards.</p>}
 
-                    <h4 style={{ color: '#6b7280', borderBottom: '2px solid #6b7280', paddingBottom: 5, marginTop: 20 }}>⚪ Inactive</h4>
+                    <h3 style={{ color: '#6b7280', borderBottom: '2px solid #6b7280', paddingBottom: 5, marginTop: 20 }}><strong>⚪ Inactive</strong></h3>
                     {redemptions.filter(r => !r.isActive).map(renderRedemptionItem)}
                     {redemptions.filter(r => !r.isActive).length === 0 && <p style={{color:'#999', fontSize:'0.9em'}}>No inactive rewards.</p>}
                 </div>
