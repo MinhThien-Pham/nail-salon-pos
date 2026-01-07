@@ -1,6 +1,7 @@
 // src/views/Calendar/CalendarView.tsx
 import { useState, useEffect } from 'react';
 import type { QueueEntry } from '../../shared/types';
+import { Button } from '../../components/ui';
 
 export function CalendarView() {
     const [queue, setQueue] = useState<QueueEntry[]>([]);
@@ -82,9 +83,9 @@ export function CalendarView() {
 
                 {/* Right: Add Appointment Button */}
                 <div className="w-[200px] flex justify-end">
-                    <button className="inline-flex items-center justify-center gap-2 text-sm transition-colors min-h-10 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-lg shadow-blue-600/20 font-semibold px-6 whitespace-nowrap active:translate-y-[1px]">
+                    <Button variant="blue" className="shadow-lg shadow-blue-600/20">
                         Add Appointment
-                    </button>
+                    </Button>
                 </div>
             </div>
 

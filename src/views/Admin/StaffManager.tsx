@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Staff, Role, ServiceType } from '../../shared/types';
 import { PinModal } from '../../components/PinModal';
+import { Button, Alert, Badge } from '../../components/ui';
 
 export function StaffManager({ showForm, onFormToggle }: { showForm: boolean; onFormToggle: () => void }) {
   const [staffList, setStaffList] = useState<Staff[]>([]);
@@ -110,7 +111,7 @@ export function StaffManager({ showForm, onFormToggle }: { showForm: boolean; on
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <strong>{s.name}</strong>
-              {!s.isActive && <span style={{ fontSize: '0.7em', background: '#fee2e2', color: '#b91c1c', padding: '2px 6px', borderRadius: 4 }}>Inactive</span>}
+              {!s.isActive && <Badge variant="red" size="sm">Inactive</Badge>}
             </div>
 
             <div style={{ fontSize: '0.9em', color: '#666', marginTop: 4 }}>
@@ -125,27 +126,15 @@ export function StaffManager({ showForm, onFormToggle }: { showForm: boolean; on
           </div>
 
           <div style={{ display: 'flex', gap: 5 }}>
-            <button
-              type="button"
-              className="h-8 px-3 rounded-lg bg-slate-100 text-slate-700 font-semibold text-xs hover:bg-slate-200 transition"
-              onClick={() => startPinChange(s.staffId)}
-            >
+            <Button variant="slate" size="sm" onClick={() => startPinChange(s.staffId)}>
               Change PIN
-            </button>
-            <button
-              type="button"
-              className="h-8 px-3 rounded-lg bg-slate-100 text-slate-700 font-semibold text-xs hover:bg-slate-200 transition"
-              onClick={() => setEditingId(s.staffId)}
-            >
+            </Button>
+            <Button variant="slate" size="sm" onClick={() => setEditingId(s.staffId)}>
               Edit
-            </button>
-            <button
-              type="button"
-              className="h-8 px-3 rounded-lg bg-red-50 text-red-600 font-semibold text-xs hover:bg-red-100 transition"
-              onClick={() => handleDelete(s.staffId)}
-            >
+            </Button>
+            <Button variant="danger" size="sm" onClick={() => handleDelete(s.staffId)}>
               Del
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -156,13 +145,7 @@ export function StaffManager({ showForm, onFormToggle }: { showForm: boolean; on
     <div>
       {/* FEEDBACK BANNER */}
       {feedback && (
-        <div style={{
-          marginBottom: 20, padding: 10, borderRadius: 6,
-          background: feedback.type === 'error' ? '#fee2e2' : '#dcfce7',
-          color: feedback.type === 'error' ? '#b91c1c' : '#166534'
-        }}>
-          {feedback.text}
-        </div>
+        <Alert type={feedback.type} message={feedback.text} className="mb-5" />
       )}
 
       {showForm && (
@@ -314,8 +297,8 @@ function StaffForm({ initialData, serviceTypes, onSave, onCancel }: { initialDat
                 type="button"
                 onClick={() => toggleSkill(t.serviceTypeId)}
                 className={`px-3 py-1 rounded-full text-xs font-semibold border transition ${data.skillsTypeIds.includes(t.serviceTypeId)
-                    ? 'bg-blue-50 text-blue-700 border-blue-200'
-                    : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                  ? 'bg-blue-50 text-blue-700 border-blue-200'
+                  : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
                   }`}
               >
                 {t.name}
@@ -358,20 +341,12 @@ function StaffForm({ initialData, serviceTypes, onSave, onCancel }: { initialDat
       </div>
 
       <div style={{ gridColumn: 'span 2', marginTop: 5, display: 'flex', gap: 10 }}>
-        <button
-          type="button"
-          className="h-10 px-6 rounded-xl bg-blue-600 text-white font-semibold shadow-sm hover:bg-blue-700 active:translate-y-[1px] transition"
-          onClick={handleSubmit}
-        >
+        <Button variant="primary" onClick={handleSubmit}>
           Save Staff
-        </button>
-        <button
-          type="button"
-          className="h-10 px-6 rounded-xl bg-slate-100 text-slate-700 font-semibold hover:bg-slate-200 transition"
-          onClick={onCancel}
-        >
+        </Button>
+        <Button variant="secondary" onClick={onCancel}>
           Cancel
-        </button>
+        </Button>
       </div>
     </div>
   );

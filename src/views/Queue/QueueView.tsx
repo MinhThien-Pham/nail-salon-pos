@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { QueueEntry, ServiceType } from "../../shared/types";
 import { DollarSign } from "lucide-react";
+import { Button } from "../../components/ui";
 
 interface QueueViewProps {
     queueTab: "LIST" | "BOXES";
@@ -137,9 +138,9 @@ export function QueueView({ queueTab }: QueueViewProps) {
 
                     {/* Right: Checkout Button */}
                     <div className="w-[140px] flex justify-end">
-                        <button className="inline-flex items-center justify-center gap-2 text-sm transition-colors min-h-10 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-lg shadow-blue-600/20 font-semibold px-8 whitespace-nowrap active:translate-y-[1px]">
+                        <Button variant="blue" className="gap-2 shadow-lg shadow-blue-600/20">
                             <DollarSign className="w-4 h-4" /> Checkout
-                        </button>
+                        </Button>
                     </div>
                 </div>
 
@@ -223,13 +224,14 @@ export function QueueView({ queueTab }: QueueViewProps) {
                                         {/* Action */}
                                         <div className="col-span-5 text-right">
                                             {entry.status === "IDLE" ? (
-                                                <button
-                                                    type="button"
+                                                <Button
+                                                    variant="slate"
+                                                    size="md"
                                                     onClick={() => handleStart(entry.staffId)}
-                                                    className="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm transition-colors min-h-9 py-2 rounded-lg font-semibold px-6 bg-slate-100 text-slate-700 hover:bg-slate-200 active:translate-y-[1px]"
+                                                    className="min-h-9 py-2 px-6"
                                                 >
                                                     Start
-                                                </button>
+                                                </Button>
                                             ) : (
                                                 <button
                                                     type="button"
