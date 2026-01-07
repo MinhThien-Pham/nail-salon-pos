@@ -1,13 +1,12 @@
 import { useState, useEffect } from 'react';
 import { ServiceType, Service } from '../../shared/types';
 
-export function ServicesManager() {
+export function ServicesManager({ showCategoryForm, onCategoryFormToggle }: { showCategoryForm: boolean; onCategoryFormToggle: () => void }) {
     const [types, setTypes] = useState<ServiceType[]>([]);
     const [services, setServices] = useState<Service[]>([]);
-    
+
     // UI State
     const [expandedTypeIds, setExpandedTypeIds] = useState<number[]>([]);
-    const [showTypeForm, setShowTypeForm] = useState(false);
     const [addingServiceToTypeId, setAddingServiceToTypeId] = useState<number | null>(null);
 
     // Feedback State
@@ -62,7 +61,7 @@ export function ServicesManager() {
         try {
             await window.api.createServiceType(newTypeName);
             setNewTypeName('');
-            setShowTypeForm(false);
+            onCategoryFormToggle(); // Close form
             setFeedback({ text: 'Category created successfully.', type: 'success' });
             loadData();
         } catch (e) {
@@ -108,7 +107,7 @@ export function ServicesManager() {
     const startAddService = (typeId: number, e: React.MouseEvent) => {
         e.stopPropagation();
         setAddingServiceToTypeId(typeId);
-        
+
         // Auto-expand if collapsed
         setExpandedTypeIds(prev => {
             if (prev.includes(typeId)) return prev;
@@ -118,7 +117,7 @@ export function ServicesManager() {
 
     const handleCreateService = async () => {
         if (!newServiceName.trim() || !newServicePrice || !addingServiceToTypeId) return;
-        
+
         try {
             await window.api.createService({
                 typeId: addingServiceToTypeId,
@@ -178,17 +177,10 @@ export function ServicesManager() {
 
     return (
         <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-                <h2><strong>Service Menu</strong></h2>
-                <button onClick={() => setShowTypeForm(!showTypeForm)}>
-                    {showTypeForm ? 'Cancel' : '+ Add Category'}
-                </button>
-            </div>
-
             {/* FEEDBACK BANNER */}
             {feedback && (
-                <div style={{ 
-                    marginBottom: 20, padding: 10, borderRadius: 6, 
+                <div style={{
+                    marginBottom: 20, padding: 10, borderRadius: 6,
                     background: feedback.type === 'error' ? '#fee2e2' : '#dcfce7',
                     color: feedback.type === 'error' ? '#b91c1c' : '#166534'
                 }}>
@@ -197,14 +189,14 @@ export function ServicesManager() {
             )}
 
             {/* NEW CATEGORY FORM */}
-            {showTypeForm && (
+            {showCategoryForm && (
                 <div className="form-section" style={{ border: '2px solid #3b82f6', marginBottom: 20 }}>
-                    <h4 style={{marginTop:0}}>New Category</h4>
+                    <h4 style={{ marginTop: 0 }}>New Category</h4>
                     <div style={{ display: 'flex', gap: 10 }}>
-                        <input 
-                            placeholder="Category Name (e.g. Pedicure)" 
-                            value={newTypeName} 
-                            onChange={e => setNewTypeName(e.target.value)} 
+                        <input
+                            placeholder="Category Name (e.g. Pedicure)"
+                            value={newTypeName}
+                            onChange={e => setNewTypeName(e.target.value)}
                             style={{ flex: 1 }}
                         />
                         <button onClick={handleCreateType}>Save</button>
@@ -222,25 +214,25 @@ export function ServicesManager() {
 
                     return (
                         <div key={type.serviceTypeId} style={{ border: '1px solid #e5e7eb', borderRadius: 6, overflow: 'hidden' }}>
-                            
+
                             {/* HEADER (CATEGORY ROW) */}
-                            <div 
+                            <div
                                 onClick={() => toggleExpand(type.serviceTypeId)}
-                                style={{ 
-                                    padding: '12px 15px', 
-                                    background: '#f9fafb', 
+                                style={{
+                                    padding: '12px 15px',
+                                    background: '#f9fafb',
                                     cursor: 'pointer',
-                                    display: 'flex', 
-                                    justifyContent: 'space-between', 
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
                                     alignItems: 'center'
                                 }}
                             >
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1 }}>
                                     <span>{isExpanded ? '▼' : '▶'}</span>
-                                    
+
                                     {isEditingThisType ? (
-                                        <input 
-                                            value={editTypeName} 
+                                        <input
+                                            value={editTypeName}
                                             onClick={e => e.stopPropagation()}
                                             onChange={e => setEditTypeName(e.target.value)}
                                             style={{ fontWeight: 'bold', fontSize: '1em', padding: 4 }}
@@ -259,8 +251,8 @@ export function ServicesManager() {
                                     {isEditingThisType ? (
                                         <>
                                             <button onClick={saveType} style={{ padding: '4px 8px', fontSize: '0.8em' }}>Save</button>
-                                            <button 
-                                                className="secondary" 
+                                            <button
+                                                className="secondary"
                                                 onClick={(e) => { e.stopPropagation(); setEditingTypeId(null); }}
                                                 style={{ padding: '4px 8px', fontSize: '0.8em' }}
                                             >
@@ -269,20 +261,20 @@ export function ServicesManager() {
                                         </>
                                     ) : (
                                         <>
-                                            <button 
+                                            <button
                                                 style={{ fontSize: '0.8em', padding: '4px 8px', backgroundColor: '#059669', color: 'white' }}
                                                 onClick={(e) => startAddService(type.serviceTypeId, e)}
                                             >
                                                 + Add Service
                                             </button>
-                                            <button 
+                                            <button
                                                 className="secondary"
                                                 style={{ fontSize: '0.8em', padding: '4px 8px' }}
                                                 onClick={(e) => startEditType(type, e)}
                                             >
                                                 Edit
                                             </button>
-                                            <button 
+                                            <button
                                                 style={{ fontSize: '0.8em', padding: '4px 8px', background: '#fee2e2', color: '#b91c1c' }}
                                                 onClick={(e) => handleDeleteType(type.serviceTypeId, e)}
                                             >
@@ -296,7 +288,7 @@ export function ServicesManager() {
                             {/* BODY (SERVICES LIST) */}
                             {isExpanded && (
                                 <div style={{ padding: 0, background: 'white' }}>
-                                    
+
                                     {/* INLINE ADD SERVICE FORM */}
                                     {isAddingToThis && (
                                         <div style={{ background: '#eff6ff', padding: 15, borderBottom: '1px solid #bfdbfe' }}>
@@ -305,8 +297,8 @@ export function ServicesManager() {
                                                 <input placeholder="Service Name" value={newServiceName} onChange={e => setNewServiceName(e.target.value)} />
                                                 <input type="number" placeholder="Mins" value={newServiceDuration} onChange={e => setNewServiceDuration(e.target.value)} />
                                                 <input type="number" placeholder="Price ($)" value={newServicePrice} onChange={e => setNewServicePrice(e.target.value)} />
-                                                <div style={{display:'flex', gap:5}}>
-                                                    <button onClick={handleCreateService} style={{backgroundColor: '#059669'}}>Save</button>
+                                                <div style={{ display: 'flex', gap: 5 }}>
+                                                    <button onClick={handleCreateService} style={{ backgroundColor: '#059669' }}>Save</button>
                                                     <button className="secondary" onClick={() => setAddingServiceToTypeId(null)}>Cancel</button>
                                                 </div>
                                             </div>
@@ -330,38 +322,38 @@ export function ServicesManager() {
                                                 {typeServices.map((s, index) => {
                                                     const isEditing = editingServiceId === s.serviceId;
                                                     const rowBg = index % 2 === 0 ? 'white' : '#f9fafb';
-                                                    
+
                                                     return (
                                                         <tr key={s.serviceId} style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: isEditing ? '#fff7ed' : rowBg }}>
                                                             {isEditing ? (
                                                                 <>
                                                                     <td style={{ padding: '8px 15px' }}>
-                                                                        <input 
-                                                                            value={editServiceData.name} 
-                                                                            onChange={e => setEditServiceData({...editServiceData, name: e.target.value})} 
-                                                                            style={{width: '100%', padding: 6, border: '1px solid #d1d5db', borderRadius: 4}}
+                                                                        <input
+                                                                            value={editServiceData.name}
+                                                                            onChange={e => setEditServiceData({ ...editServiceData, name: e.target.value })}
+                                                                            style={{ width: '100%', padding: 6, border: '1px solid #d1d5db', borderRadius: 4 }}
                                                                         />
                                                                     </td>
                                                                     <td style={{ padding: '8px 15px' }}>
-                                                                        <input 
-                                                                            type="number" 
-                                                                            value={editServiceData.duration} 
-                                                                            onChange={e => setEditServiceData({...editServiceData, duration: e.target.value})} 
-                                                                            style={{width: '100%', padding: 6, border: '1px solid #d1d5db', borderRadius: 4}}
+                                                                        <input
+                                                                            type="number"
+                                                                            value={editServiceData.duration}
+                                                                            onChange={e => setEditServiceData({ ...editServiceData, duration: e.target.value })}
+                                                                            style={{ width: '100%', padding: 6, border: '1px solid #d1d5db', borderRadius: 4 }}
                                                                         />
                                                                     </td>
                                                                     <td style={{ padding: '8px 15px' }}>
-                                                                        <input 
-                                                                            type="number" 
-                                                                            value={editServiceData.price} 
-                                                                            onChange={e => setEditServiceData({...editServiceData, price: e.target.value})} 
-                                                                            style={{width: '100%', padding: 6, border: '1px solid #d1d5db', borderRadius: 4}}
+                                                                        <input
+                                                                            type="number"
+                                                                            value={editServiceData.price}
+                                                                            onChange={e => setEditServiceData({ ...editServiceData, price: e.target.value })}
+                                                                            style={{ width: '100%', padding: 6, border: '1px solid #d1d5db', borderRadius: 4 }}
                                                                         />
                                                                     </td>
                                                                     <td style={{ padding: '8px 15px', textAlign: 'right' }}>
-                                                                        <div style={{display:'flex', gap: 5, justifyContent: 'flex-end'}}>
-                                                                            <button onClick={saveService} style={{padding: '4px 8px', fontSize: '0.8em'}}>Save</button>
-                                                                            <button className="secondary" onClick={() => setEditingServiceId(null)} style={{padding: '4px 8px', fontSize: '0.8em'}}>Cancel</button>
+                                                                        <div style={{ display: 'flex', gap: 5, justifyContent: 'flex-end' }}>
+                                                                            <button onClick={saveService} style={{ padding: '4px 8px', fontSize: '0.8em' }}>Save</button>
+                                                                            <button className="secondary" onClick={() => setEditingServiceId(null)} style={{ padding: '4px 8px', fontSize: '0.8em' }}>Cancel</button>
                                                                         </div>
                                                                     </td>
                                                                 </>
@@ -371,15 +363,15 @@ export function ServicesManager() {
                                                                     <td style={{ padding: '10px 15px', color: '#6b7280' }}>{s.durationMin} min</td>
                                                                     <td style={{ padding: '10px 15px', color: '#111827' }}>${(s.priceCents / 100).toFixed(2)}</td>
                                                                     <td style={{ padding: '10px 15px', textAlign: 'right' }}>
-                                                                        <div style={{display:'flex', gap: 5, justifyContent: 'flex-end'}}>
-                                                                            <button 
-                                                                                className="secondary" 
+                                                                        <div style={{ display: 'flex', gap: 5, justifyContent: 'flex-end' }}>
+                                                                            <button
+                                                                                className="secondary"
                                                                                 style={{ padding: '4px 8px', fontSize: '0.75em' }}
                                                                                 onClick={() => startEditService(s)}
                                                                             >
                                                                                 Edit
                                                                             </button>
-                                                                            <button 
+                                                                            <button
                                                                                 style={{ padding: '4px 8px', fontSize: '0.75em', background: '#fee2e2', color: '#b91c1c' }}
                                                                                 onClick={() => handleDeleteService(s.serviceId)}
                                                                             >

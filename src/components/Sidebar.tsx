@@ -6,9 +6,11 @@ interface SidebarProps {
   activeView: string; // "QUEUE" | "CALENDAR" | "GIFT" | "ADMIN"
   onNavigate: (view: string) => void;
   onSettingsClick: () => void;
+  onClockInClick: () => void;
+  onClockOutClick: () => void;
 }
 
-export function Sidebar({ activeView, onNavigate, onSettingsClick }: SidebarProps) {
+export function Sidebar({ activeView, onNavigate, onSettingsClick, onClockInClick, onClockOutClick }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [now, setNow] = useState(() => new Date());
 
@@ -32,7 +34,7 @@ export function Sidebar({ activeView, onNavigate, onSettingsClick }: SidebarProp
       className={[
         "h-screen bg-white border-r border-slate-200 flex flex-col",
         "transition-[width] duration-300 ease-in-out",
-        collapsed ? "w-[100px]" : "w-[320px]", 
+        collapsed ? "w-[100px]" : "w-[240px]",
       ].join(" ")}
     >
       {/* Top */}
@@ -44,7 +46,7 @@ export function Sidebar({ activeView, onNavigate, onSettingsClick }: SidebarProp
           aria-label="Toggle sidebar"
           title="Toggle"
         >
-          <Menu className="h-8 w-8" /> 
+          <Menu className="h-8 w-8" />
         </button>
 
         {!collapsed && (
@@ -57,15 +59,15 @@ export function Sidebar({ activeView, onNavigate, onSettingsClick }: SidebarProp
       {/* Nav */}
       <nav className="flex-1 px-4 py-6 flex flex-col gap-3">
         <NavItem
-          icon={<LayoutDashboard className="h-7 w-7" />} 
-          label="Queue Dashboard"
+          icon={<LayoutDashboard className="h-7 w-7" />}
+          label="Queue"
           collapsed={collapsed}
           active={activeView === "QUEUE"}
           onClick={() => onNavigate("QUEUE")}
         />
         <NavItem
           icon={<Calendar className="h-7 w-7" />}
-          label="Calendar View"
+          label="Calendar"
           collapsed={collapsed}
           active={activeView === "CALENDAR"}
           onClick={() => onNavigate("CALENDAR")}
@@ -94,7 +96,7 @@ export function Sidebar({ activeView, onNavigate, onSettingsClick }: SidebarProp
             label="Clock-in"
             collapsed={collapsed}
             active={false}
-            onClick={() => {}}
+            onClick={onClockInClick}
             className="hover:bg-green-50 hover:text-green-700"
           />
           <NavItem
@@ -102,7 +104,7 @@ export function Sidebar({ activeView, onNavigate, onSettingsClick }: SidebarProp
             label="Clock-out"
             collapsed={collapsed}
             active={false}
-            onClick={() => {}}
+            onClick={onClockOutClick}
             className="hover:bg-red-50 hover:text-red-700"
           />
           <NavItem

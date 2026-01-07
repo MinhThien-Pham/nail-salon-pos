@@ -1,5 +1,5 @@
 /// <reference types="vite/client" />
-import { Staff, Settings } from "./shared/types";
+import { Staff, Settings, QueueEntry, ServiceType, Service } from "./shared/types";
 
 // Because this file has an 'import', we must use 'declare global' 
 // to make these variables visible to main.ts
@@ -39,7 +39,7 @@ export interface IElectronAPI {
   updateRedemption: (id: number, data: any) => Promise<void>;
   deleteRedemption: (id: number) => Promise<void>;
   // Services
-getServiceTypes: () => Promise<ServiceType[]>;
+  getServiceTypes: () => Promise<ServiceType[]>;
   createServiceType: (name: string) => Promise<number>;
   updateServiceType: (id: number, name: string) => Promise<void>;
   deleteServiceType: (id: number) => Promise<void>;
@@ -47,4 +47,12 @@ getServiceTypes: () => Promise<ServiceType[]>;
   createService: (data: any) => Promise<number>;
   updateService: (id: number, data: any) => Promise<void>;
   deleteService: (id: number) => Promise<void>;
+  // Queue
+  getQueueState: () => Promise<QueueEntry[]>;
+  saveQueueState: (entries: QueueEntry[]) => Promise<void>;
+  resetQueue: () => Promise<void>;
+  addTechToQueue: (staffId: number, order: number) => Promise<QueueEntry[]>;
+  removeTechFromQueue: (staffId: number) => Promise<QueueEntry[]>;
+  updateTechStatus: (staffId: number, status: string) => Promise<QueueEntry[]>;
+  bulkAddTechsToQueue: (staffIds: number[]) => Promise<QueueEntry[]>;
 }

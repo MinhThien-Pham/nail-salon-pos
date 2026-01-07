@@ -13,7 +13,7 @@ const api = {
     getAllStaff: () => ipcRenderer.invoke('staff:get-all'),
     createStaff: (data: any) => ipcRenderer.invoke('staff:create', data),
     adminSetPin: (staffId: number, newPin: string) => ipcRenderer.invoke('staff:admin-set-pin', { staffId, newPin }),
-    changeOwnPin: (staffId: number, oldPin: string, newPin: string) => ipcRenderer.invoke('auth:change-own-pin', { staffId, oldPin, newPin }),    
+    changeOwnPin: (staffId: number, oldPin: string, newPin: string) => ipcRenderer.invoke('auth:change-own-pin', { staffId, oldPin, newPin }),
     updateStaff: (id: number, data: any) => ipcRenderer.invoke('staff:update', { id, data }),
     deleteStaff: (id: number) => ipcRenderer.invoke('staff:delete', id),
     // Settings
@@ -30,7 +30,7 @@ const api = {
     updateRedemption: (id: number, data: any) => ipcRenderer.invoke('marketing:update-redemption', { id, data }),
     deleteRedemption: (id: number) => ipcRenderer.invoke('marketing:delete-redemption', id),
     // Services
-getServiceTypes: () => ipcRenderer.invoke('services:get-types'),
+    getServiceTypes: () => ipcRenderer.invoke('services:get-types'),
     createServiceType: (name: string) => ipcRenderer.invoke('services:create-type', name),
     updateServiceType: (id: number, name: string) => ipcRenderer.invoke('services:update-type', { id, name }),
     deleteServiceType: (id: number) => ipcRenderer.invoke('services:delete-type', id),
@@ -38,6 +38,14 @@ getServiceTypes: () => ipcRenderer.invoke('services:get-types'),
     createService: (data: any) => ipcRenderer.invoke('services:create', data),
     updateService: (id: number, data: any) => ipcRenderer.invoke('services:update', { id, data }),
     deleteService: (id: number) => ipcRenderer.invoke('services:delete', id),
+    // Queue
+    getQueueState: () => ipcRenderer.invoke('queue:get-state'),
+    saveQueueState: (entries: any[]) => ipcRenderer.invoke('queue:save-state', entries),
+    resetQueue: () => ipcRenderer.invoke('queue:reset'),
+    addTechToQueue: (staffId: number, order: number) => ipcRenderer.invoke('queue:add-tech', { staffId, order }),
+    removeTechFromQueue: (staffId: number) => ipcRenderer.invoke('queue:remove-tech', staffId),
+    updateTechStatus: (staffId: number, status: string) => ipcRenderer.invoke('queue:update-status', { staffId, status }),
+    bulkAddTechsToQueue: (staffIds: number[]) => ipcRenderer.invoke('queue:bulk-add', staffIds),
 };
 
 contextBridge.exposeInMainWorld('api', api);

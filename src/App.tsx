@@ -3,8 +3,12 @@ import { useState } from "react";
 import { Sidebar } from "./components/Sidebar";
 import { PinModal } from "./components/PinModal";
 import { AdminDashboard, AdminTabBar, type AdminView } from "./views/Admin/AdminDashboard";
+import { QueueView } from "./views/Queue/QueueView";
+import { ClockInView } from "./views/ClockIn/ClockInView";
+import { ClockOutView } from "./views/ClockOut/ClockOutView";
+import { GiftCardView } from "./views/GiftCard/GiftCardView";
 
-type RouteView = "QUEUE" | "CALENDAR" | "GIFT" | "ADMIN";
+type RouteView = "QUEUE" | "CALENDAR" | "GIFT" | "ADMIN" | "CLOCKIN" | "CLOCKOUT";
 type QueueTab = "LIST" | "BOXES";
 
 export default function App() {
@@ -13,8 +17,11 @@ export default function App() {
 
   const [adminView, setAdminView] = useState<AdminView>("STAFF");
 
-  // Owner PIN modal (used for Settings -> Owner unlock)
-  const [showPinModal, setShowPinModal] = useState(false);
+  // Owner PIN modal (used => Settings -> Owner unlock)
+  const [showOwnerPinModal, setShowOwnerPinModal] = useState(false);
+
+  // Clock-in PIN modal
+  const [showClockInPinModal, setShowClockInPinModal] = useState(false);
 
   const handleOwnerUnlock = async (pin: string): Promise<boolean> => {
     try {
@@ -29,14 +36,33 @@ export default function App() {
     }
   };
 
+  const handleClockInUnlock = async (pin: string): Promise<boolean> => {
+    try {
+      const staff = await window.api.verifyReceptionist(pin);
+      if (!staff) return false;
+
+      setShowClockInPinModal(false);
+      setRoute("CLOCKIN");
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
   const title =
     route === "QUEUE"
       ? "Queue"
       : route === "CALENDAR"
-      ? "Calendar"
-      : route === "GIFT"
-      ? "Gift Cards"
-      : "Owner Dashboard";
+        ? "Calendar"
+        : route === "GIFT"
+          ? "Gift Cards"
+          : route === "CLOCKIN"
+            ? "Clock-In"
+            : route === "CLOCKOUT"
+              ? "Clock-Out"
+              : route === "ADMIN"
+                ? "Settings"
+                : "Owner Dashboard";
 
   return (
     <div className="h-screen w-screen bg-slate-50 flex overflow-hidden">
@@ -46,134 +72,88 @@ export default function App() {
           // keep your last queue tab when returning to queue
           setRoute(v as RouteView);
         }}
-        onSettingsClick={() => setShowPinModal(true)}
+        onSettingsClick={() => setShowOwnerPinModal(true)}
+        onClockInClick={() => setShowClockInPinModal(true)}
+        onClockOutClick={() => setRoute("CLOCKOUT")}
       />
 
-      <main className="flex-1 min-w-0 p-6">
-        {/* Main “card” shell (matches Replit style) */}
-        <div className="h-full bg-white border border-slate-200 rounded-[28px] shadow-sm overflow-hidden flex flex-col">
-          {/* Header row: title left, tabs centered, actions right */}
-          <div className="px-6 py-4 border-b border-slate-100">
-            <div className="grid grid-cols-[auto,1fr,auto] items-center gap-4">
-              <div className="min-w-0">
-                <div className="text-xl font-semibold text-slate-900 leading-tight">{title}</div>
-                {route === "QUEUE" && (
-                  <div className="text-xs text-slate-500 mt-1">Turn List + Boxes</div>
-                )}
-                {route === "ADMIN" && (
-                  <div className="text-xs text-slate-500 mt-1">Manage staff, services, marketing, settings</div>
-                )}
-              </div>
 
-              {/* Center controls */}
-              <div className="justify-self-center">
-                {route === "QUEUE" && (
-                  <div className="bg-slate-100 border border-slate-200 rounded-2xl p-1 flex items-center gap-1">
-                    <button
-                      type="button"
-                      onClick={() => setQueueTab("LIST")}
-                      className={[
-                        "px-4 h-9 rounded-xl text-sm font-semibold transition",
-                        queueTab === "LIST"
-                          ? "bg-white text-slate-900 shadow-sm border border-slate-200"
-                          : "text-slate-600 hover:text-slate-900",
-                      ].join(" ")}
-                    >
-                      Turn List
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setQueueTab("BOXES")}
-                      className={[
-                        "px-4 h-9 rounded-xl text-sm font-semibold transition",
-                        queueTab === "BOXES"
-                          ? "bg-white text-slate-900 shadow-sm border border-slate-200"
-                          : "text-slate-600 hover:text-slate-900",
-                      ].join(" ")}
-                    >
-                      Boxes
-                    </button>
-                  </div>
-                )}
+      <main className="flex-1 overflow-auto bg-slate-50 p-3">
+        {route === "QUEUE" ? (
+          // Queue view - full screen without wrapper
+          <div className="h-full">
+            <QueueView queueTab={queueTab} />
+          </div>
+        ) : route === "ADMIN" ? (
+          // Admin view - full screen without wrapper
+          <div className="h-full">
+            <AdminDashboard currentView={adminView} onViewChange={setAdminView} />
+          </div>
+        ) : route === "CLOCKIN" ? (
+          // Clock-In view - full screen without wrapper
+          <div className="h-full">
+            <ClockInView />
+          </div>
+        ) : route === "CLOCKOUT" ? (
+          // Clock-Out view - full screen without wrapper
+          <div className="h-full">
+            <ClockOutView />
+          </div>
+        ) : route === "GIFT" ? (
+          // Gift Card view - full screen without wrapper
+          <div className="h-full">
+            <GiftCardView />
+          </div>
+        ) : (
+          // Calendar view - with card wrapper (legacy, will be updated later)
+          <div className="h-full bg-white border border-slate-200 rounded-[28px] shadow-sm overflow-hidden flex flex-col">
+            {/* Header row: title left, tabs centered, actions right */}
+            <div className="px-6 py-4 border-b border-slate-100">
+              <div className="grid grid-cols-[auto,1fr,auto] items-center gap-4">
+                <div className="min-w-0">
+                  <div className="text-xl font-semibold text-slate-900 leading-tight">{title}</div>
+                </div>
 
-                {route === "ADMIN" && (
-                  <AdminTabBar currentView={adminView} onChange={setAdminView} />
-                )}
-              </div>
+                {/* Center controls */}
+                <div className="justify-self-center">
+                  {/* Future: add view-specific controls here */}
+                </div>
 
-              {/* Right actions */}
-              <div className="justify-self-end flex items-center gap-2">
-                {route === "QUEUE" && (
-                  <button
-                    type="button"
-                    className="h-10 px-4 rounded-2xl bg-blue-600 text-white font-semibold shadow-sm hover:bg-blue-700 active:translate-y-[1px] transition disabled:opacity-50 disabled:cursor-not-allowed"
-                    disabled
-                    title="Wire checkout later"
-                  >
-                    Checkout
-                  </button>
-                )}
-
-                {route === "ADMIN" && (
-                  <button
-                    type="button"
-                    className="h-10 px-4 rounded-2xl bg-slate-900 text-white font-semibold shadow-sm hover:bg-slate-800 active:translate-y-[1px] transition"
-                    onClick={() => setRoute("QUEUE")}
-                    title="Back to queue"
-                  >
-                    Back
-                  </button>
-                )}
+                {/* Right actions */}
+                <div className="justify-self-end flex items-center gap-2">
+                  {/* Future: add view-specific actions here */}
+                </div>
               </div>
             </div>
+
+            {/* Body */}
+            <div className="flex-1 overflow-auto bg-slate-50 p-6">
+              {route === "CALENDAR" && (
+                <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-6">
+                  <div className="text-lg font-semibold mb-2">Calendar View</div>
+                  <div className="text-sm text-slate-500">(Wire later.)</div>
+                </div>
+              )}
+            </div>
           </div>
-
-          {/* Body */}
-          <div className="flex-1 overflow-auto bg-slate-50 p-6">
-            {route === "QUEUE" && (
-              <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-6">
-                {queueTab === "LIST" ? (
-                  <div className="text-slate-700">
-                    <div className="text-lg font-semibold mb-2">Turn List</div>
-                    <div className="text-sm text-slate-500">
-                      (Keep your existing Turn List UI here — this is just the shell.)
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-slate-700">
-                    <div className="text-lg font-semibold mb-2">Boxes</div>
-                    <div className="text-sm text-slate-500">
-                      (Keep your existing Boxes UI here — this is just the shell.)
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {route === "CALENDAR" && (
-              <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-6">
-                <div className="text-lg font-semibold mb-2">Calendar View</div>
-                <div className="text-sm text-slate-500">(Wire later.)</div>
-              </div>
-            )}
-
-            {route === "GIFT" && (
-              <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-6">
-                <div className="text-lg font-semibold mb-2">Gift Cards</div>
-                <div className="text-sm text-slate-500">(Wire later.)</div>
-              </div>
-            )}
-
-            {route === "ADMIN" && <AdminDashboard currentView={adminView} />}
-          </div>
-        </div>
+        )}
       </main>
 
+      {/* Owner PIN Modal for Settings */}
       <PinModal
-        open={showPinModal}
+        open={showOwnerPinModal}
         title="Enter Owner PIN"
-        onClose={() => setShowPinModal(false)}
+        onClose={() => setShowOwnerPinModal(false)}
         onSubmit={handleOwnerUnlock}
+      />
+
+      {/* Clock-in PIN Modal */}
+      <PinModal
+        open={showClockInPinModal}
+        title="Clock-In Authentication"
+        subtitle="Enter receptionist PIN to access clock-in"
+        onClose={() => setShowClockInPinModal(false)}
+        onSubmit={handleClockInUnlock}
       />
     </div>
   );

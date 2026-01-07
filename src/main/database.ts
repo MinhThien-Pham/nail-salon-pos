@@ -2,7 +2,7 @@
 import Database from 'better-sqlite3';
 import { app } from 'electron';
 import path from 'path';
-import { Settings, Staff, Promo, Reward, ServiceType, Service } from '../shared/types';
+import { Settings, Staff, Promo, Reward, ServiceType, Service, QueueEntry, TechStatus } from '../shared/types';
 
 const todayISO = new Date().toISOString().split('T')[0];
 
@@ -120,13 +120,31 @@ export class AppDatabase {
             );
         `);
 
+        // 7. Queue State (singleton row)
+        this.db.exec(`
+            CREATE TABLE IF NOT EXISTS queue_state (
+                id INTEGER PRIMARY KEY CHECK (id = 1),
+                queueData TEXT NOT NULL DEFAULT '[]',
+                updatedAt INTEGER NOT NULL
+            );
+        `);
+
+        // Initialize Queue State row if not exists
+        const queueRow = this.db.prepare('SELECT * FROM queue_state WHERE id = 1').get();
+        if (!queueRow) {
+            this.db.prepare(`
+                INSERT INTO queue_state (id, queueData, updatedAt)
+                VALUES (1, '[]', ?)
+            `).run(Date.now());
+        }
+
         this.seedData();
         this.cleanupExpiredPromos();
     }
 
     private cleanupExpiredPromos() {
         const today = new Date().toISOString().split('T')[0];
-        
+
         const stmt = this.db.prepare(`
             UPDATE promos 
             SET isActive = 0 
@@ -135,7 +153,7 @@ export class AppDatabase {
               AND triggerType = 'MANUAL' 
               AND endISO < ?
         `);
-        
+
         const info = stmt.run(today);
         if (info.changes > 0) {
             console.log(`[Startup] Auto-Archived ${info.changes} expired promotions.`);
@@ -182,7 +200,7 @@ export class AppDatabase {
                 ?
             )
         `).run(
-            todayISO, 
+            todayISO,
             nextYearISO,
             JSON.stringify(["AT_RISK"])
         );
@@ -194,8 +212,8 @@ export class AppDatabase {
                 INSERT INTO redemptions (isActive, name, audience, redeemPointsCost, rewardConfig)
                 VALUES (0, ?, ?, ?, ?)
             `).run(
-                'The Mini Treat ($5 Off)', 
-                null, 
+                'The Mini Treat ($5 Off)',
+                null,
                 100,
                 JSON.stringify({ type: "CREDIT", creditCents: 500 })
             );
@@ -276,7 +294,7 @@ export class AppDatabase {
                     minServiceCents = ?
                 WHERE promoId = ?
             `);
-            
+
             return stmt.run(
                 data.name,
                 data.isActive ? 1 : 0,
@@ -329,7 +347,7 @@ export class AppDatabase {
 
     // --- MAPPERS ---
     private mapRowToPromo(row: any): Promo {
-        const reward: Reward = row.rewardType === 'CREDIT' 
+        const reward: Reward = row.rewardType === 'CREDIT'
             ? { type: 'CREDIT', creditCents: row.rewardValue }
             : { type: 'PERCENT', percentOffService: row.rewardValue };
 
@@ -361,8 +379,8 @@ export class AppDatabase {
         return rows.map(this.mapRowToStaff);
     }
 
-    createStaff(staff: any): number { 
-         const stmt = this.db.prepare(`
+    createStaff(staff: any): number {
+        const stmt = this.db.prepare(`
             INSERT INTO staff (name, roles, pin, isActive, skillsTypeIds, commissionTechRate, payoutCheckRate, createdAt, updatedAt)
             VALUES (@name, @roles, @pin, @isActive, @skillsTypeIds, @commissionTechRate, @payoutCheckRate, @createdAt, @updatedAt)
         `);
@@ -379,7 +397,7 @@ export class AppDatabase {
         }).lastInsertRowid as number;
     }
 
-    updateStaff(id: number, staff: any) { 
+    updateStaff(id: number, staff: any) {
         const stmt = this.db.prepare(`
             UPDATE staff SET 
                 name = COALESCE(@name, name), 
@@ -391,25 +409,25 @@ export class AppDatabase {
                 updatedAt = @updatedAt 
             WHERE staffId = @staffId
         `);
-        
-        stmt.run({ 
-            ...staff, 
-            roles: staff.roles ? JSON.stringify(staff.roles) : null, 
-            isActive: staff.isActive === undefined ? null : (staff.isActive ? 1 : 0), 
+
+        stmt.run({
+            ...staff,
+            roles: staff.roles ? JSON.stringify(staff.roles) : null,
+            isActive: staff.isActive === undefined ? null : (staff.isActive ? 1 : 0),
             // FIX: Handle array to string conversion carefully
-            skillsTypeIds: staff.skillsTypeIds ? JSON.stringify(staff.skillsTypeIds) : null, 
-            commissionTechRate: staff.payroll?.commissionTechRate, 
-            payoutCheckRate: staff.payroll?.payoutCheckRate, 
-            updatedAt: Date.now(), 
-            staffId: id 
+            skillsTypeIds: staff.skillsTypeIds ? JSON.stringify(staff.skillsTypeIds) : null,
+            commissionTechRate: staff.payroll?.commissionTechRate,
+            payoutCheckRate: staff.payroll?.payoutCheckRate,
+            updatedAt: Date.now(),
+            staffId: id
         });
     }
 
-    deleteStaff(id: number) { 
-        if (id === 1) throw new Error("Cannot delete Owner"); 
-        this.db.prepare('DELETE FROM staff WHERE staffId = ?').run(id); 
+    deleteStaff(id: number) {
+        if (id === 1) throw new Error("Cannot delete Owner");
+        this.db.prepare('DELETE FROM staff WHERE staffId = ?').run(id);
     }
-    
+
     // Auth
     verifyPin(pin: string): Staff | undefined { const u = this.db.prepare('SELECT * FROM staff WHERE pin = ? AND isActive = 1').get(pin); return u ? this.mapRowToStaff(u) : undefined; }
     verifyOwnerPin(pin: string): Staff | undefined { const u = this.verifyStaffPin(1, pin); return (u && u.roles.includes('OWNER')) ? u : undefined; }
@@ -419,25 +437,25 @@ export class AppDatabase {
 
     // --- REDEMPTIONS ---
     getAllRedemptions() { const rows = this.db.prepare('SELECT * FROM redemptions').all() as any[]; return rows.map(this.mapRowToRedemption); }
-    createRedemption(r: any): number { 
+    createRedemption(r: any): number {
         const stmt = this.db.prepare(`INSERT INTO redemptions (isActive, name, audience, redeemPointsCost, rewardConfig) VALUES (?, ?, ?, ?, ?)`);
-        return stmt.run(r.isActive?1:0, r.name, JSON.stringify(r.audience), r.redeemPointsCost, JSON.stringify(r.reward)).lastInsertRowid as number;
+        return stmt.run(r.isActive ? 1 : 0, r.name, JSON.stringify(r.audience), r.redeemPointsCost, JSON.stringify(r.reward)).lastInsertRowid as number;
     }
     updateRedemption(id: number, r: any) {
         const stmt = this.db.prepare(`UPDATE redemptions SET isActive = ?, name = ?, audience = ?, redeemPointsCost = ?, rewardConfig = ? WHERE redemptionId = ?`);
-        stmt.run(r.isActive?1:0, r.name, JSON.stringify(r.audience), r.redeemPointsCost, JSON.stringify(r.reward), id);
+        stmt.run(r.isActive ? 1 : 0, r.name, JSON.stringify(r.audience), r.redeemPointsCost, JSON.stringify(r.reward), id);
     }
     deleteRedemption(id: number) { this.db.prepare('DELETE FROM redemptions WHERE redemptionId = ?').run(id); }
-    
+
     // --- SETTINGS ---
     getSettings(): Settings { const row = this.db.prepare('SELECT * FROM settings WHERE id = 1').get() as any; return { id: row.id, defaultCommissionTechRate: row.defaultCommissionTechRate, defaultPayoutCheckRate: row.defaultPayoutCheckRate, periodDays: row.periodDays, periodStartDate: row.periodStartDate, loyaltyEarn: JSON.parse(row.loyaltyEarnConfig) }; }
-    updateSettings(s: any) { 
+    updateSettings(s: any) {
         const cur = this.getSettings();
         const up = { ...cur, ...s };
         this.db.prepare(`UPDATE settings SET defaultCommissionTechRate = ?, defaultPayoutCheckRate = ?, periodDays = ?, periodStartDate = ?, loyaltyEarnConfig = ? WHERE id = 1`).run(up.defaultCommissionTechRate, up.defaultPayoutCheckRate, up.periodDays, up.periodStartDate, JSON.stringify(up.loyaltyEarn));
     }
 
-    private mapRowToStaff(row: any): Staff { 
+    private mapRowToStaff(row: any): Staff {
         let skills: number[] = [];
         // FIX: Robust JSON parsing for skills
         try {
@@ -449,16 +467,16 @@ export class AppDatabase {
             skills = [];
         }
 
-        return { 
-            ...row, 
-            roles: JSON.parse(row.roles), 
-            skillsTypeIds: skills, 
-            isActive: !!row.isActive, 
-            payroll: { 
-                commissionTechRate: row.commissionTechRate, 
-                payoutCheckRate: row.payoutCheckRate 
-            } 
-        }; 
+        return {
+            ...row,
+            roles: JSON.parse(row.roles),
+            skillsTypeIds: skills,
+            isActive: !!row.isActive,
+            payroll: {
+                commissionTechRate: row.commissionTechRate,
+                payoutCheckRate: row.payoutCheckRate
+            }
+        };
     }
     private mapRowToRedemption(row: any) { return { redemptionId: row.redemptionId, isActive: !!row.isActive, name: row.name, audience: JSON.parse(row.audience), redeemPointsCost: row.redeemPointsCost, reward: JSON.parse(row.rewardConfig) }; }
 
@@ -505,14 +523,198 @@ export class AppDatabase {
                 updatedAt = @updatedAt 
             WHERE serviceId = @serviceId
         `);
-        stmt.run({ 
-            ...data, 
-            serviceId: id, 
-            updatedAt: Date.now() 
+        stmt.run({
+            ...data,
+            serviceId: id,
+            updatedAt: Date.now()
         });
     }
 
     deleteService(id: number) {
         this.db.prepare('DELETE FROM services WHERE serviceId = ?').run(id);
+    }
+
+    // --- QUEUE STATE ---
+
+    /**
+     * Get current queue state
+     * Returns parsed QueueEntry array with proper invariants
+     */
+    getQueueState(): QueueEntry[] {
+        const row = this.db.prepare('SELECT queueData FROM queue_state WHERE id = 1').get() as any;
+        if (!row) return [];
+
+        try {
+            const parsed = JSON.parse(row.queueData);
+            return Array.isArray(parsed) ? parsed : [];
+        } catch (e) {
+            console.error('Failed to parse queue data:', e);
+            return [];
+        }
+    }
+
+    /**
+     * Save queue state with invariant enforcement:
+     * - Sequential order (1..N)
+     * - No duplicate staffId
+     * - Only valid statuses (IDLE | SERVING)
+     */
+    saveQueueState(entries: QueueEntry[]): void {
+        // Enforce invariants
+        const seen = new Set<number>();
+        const validated = entries
+            .filter(entry => {
+                // Check for duplicates
+                if (seen.has(entry.staffId)) {
+                    console.warn(`Duplicate staffId ${entry.staffId} removed from queue`);
+                    return false;
+                }
+                seen.add(entry.staffId);
+
+                // Validate status
+                if (entry.status !== 'IDLE' && entry.status !== 'SERVING') {
+                    console.warn(`Invalid status ${entry.status} for staffId ${entry.staffId}, defaulting to IDLE`);
+                    entry.status = 'IDLE';
+                }
+
+                return true;
+            })
+            // Re-index order to be sequential 1..N
+            .map((entry, idx) => ({
+                ...entry,
+                order: idx + 1
+            }));
+
+        const now = Date.now();
+        this.db.prepare(`
+            UPDATE queue_state 
+            SET queueData = ?, updatedAt = ? 
+            WHERE id = 1
+        `).run(JSON.stringify(validated), now);
+    }
+
+    /**
+     * Reset queue to empty state (end-of-day)
+     */
+    resetQueue(): void {
+        this.db.prepare(`
+            UPDATE queue_state 
+            SET queueData = '[]', updatedAt = ? 
+            WHERE id = 1
+        `).run(Date.now());
+    }
+
+    /**
+     * Add tech to queue (clock-in)
+     * @param staffId - Tech's staff ID
+     * @param order - Position in queue (1-based)
+     * @returns Updated queue
+     */
+    addTechToQueue(staffId: number, order: number): QueueEntry[] {
+        const staff = this.db.prepare('SELECT * FROM staff WHERE staffId = ?').get(staffId);
+        if (!staff) {
+            throw new Error(`Staff ${staffId} not found`);
+        }
+
+        const currentQueue = this.getQueueState();
+
+        // Check if already in queue
+        if (currentQueue.some(e => e.staffId === staffId)) {
+            throw new Error(`Staff ${staffId} is already in the queue`);
+        }
+
+        const mappedStaff = this.mapRowToStaff(staff);
+
+        const newEntry: QueueEntry = {
+            staffId: mappedStaff.staffId,
+            name: mappedStaff.name,
+            order,
+            status: 'IDLE',
+            turns: 0,
+            skillsTypeIds: mappedStaff.skillsTypeIds
+        };
+
+        const updated = [...currentQueue, newEntry];
+        this.saveQueueState(updated);
+        return this.getQueueState();
+    }
+
+    /**
+     * Remove tech from queue (clock-out)
+     * Only allowed if status is IDLE
+     */
+    removeTechFromQueue(staffId: number): QueueEntry[] {
+        const currentQueue = this.getQueueState();
+        const tech = currentQueue.find(e => e.staffId === staffId);
+
+        if (!tech) {
+            throw new Error(`Staff ${staffId} not in queue`);
+        }
+
+        if (tech.status === 'SERVING') {
+            throw new Error(`Cannot clock out staff ${staffId} while SERVING`);
+        }
+
+        const updated = currentQueue.filter(e => e.staffId !== staffId);
+        this.saveQueueState(updated);
+        return this.getQueueState();
+    }
+
+    /**
+     * Update tech status in queue
+     */
+    updateTechStatus(staffId: number, status: TechStatus): QueueEntry[] {
+        const currentQueue = this.getQueueState();
+        const tech = currentQueue.find(e => e.staffId === staffId);
+
+        if (!tech) {
+            throw new Error(`Staff ${staffId} not in queue`);
+        }
+
+        const updated = currentQueue.map(e =>
+            e.staffId === staffId ? { ...e, status } : e
+        );
+
+        this.saveQueueState(updated);
+        return this.getQueueState();
+    }
+
+    /**
+     * Bulk add techs to queue (for clock-in flow)
+     * @param staffIds - Array of staff IDs in order
+     */
+    bulkAddTechsToQueue(staffIds: number[]): QueueEntry[] {
+        const currentQueue = this.getQueueState();
+
+        // Get all staff in one query
+        const placeholders = staffIds.map(() => '?').join(',');
+        const allStaff = this.db.prepare(
+            `SELECT * FROM staff WHERE staffId IN (${placeholders})`
+        ).all(...staffIds) as any[];
+
+        const newEntries: QueueEntry[] = staffIds.map((staffId, idx) => {
+            const staff = allStaff.find(s => s.staffId === staffId);
+            if (!staff) {
+                throw new Error(`Staff ${staffId} not found`);
+            }
+
+            if (currentQueue.some(e => e.staffId === staffId)) {
+                throw new Error(`Staff ${staffId} is already in the queue`);
+            }
+
+            const mappedStaff = this.mapRowToStaff(staff);
+
+            return {
+                staffId: mappedStaff.staffId,
+                name: mappedStaff.name,
+                order: idx + 1,
+                status: 'IDLE',
+                turns: 0,
+                skillsTypeIds: mappedStaff.skillsTypeIds
+            };
+        });
+
+        this.saveQueueState(newEntries);
+        return this.getQueueState();
     }
 }

@@ -112,3 +112,20 @@ export type Service = {
     createdAt: number;
     updatedAt: number;
 };
+
+// --- QUEUE SYSTEM ---
+export type TechStatus = "IDLE" | "SERVING";
+
+export type QueueEntry = {
+    staffId: number;
+    name: string;              // denormalized for rendering
+    order: number;             // 1..N position set by receptionist
+    status: TechStatus;        // only IDLE or SERVING
+    turns: number;             // starts 0, increment on checkout
+    skillsTypeIds: number[];   // denormalized service skills
+};
+
+export type QueueState = {
+    queueData: QueueEntry[];
+    updatedAt: number;
+};
