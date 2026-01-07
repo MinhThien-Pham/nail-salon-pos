@@ -1,63 +1,194 @@
-import { useState } from 'react';
-import { X, Delete } from 'lucide-react';
+// src/components/PinModal.tsx
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Delete, X } from "lucide-react";
 
 interface PinModalProps {
   open: boolean;
   onClose: () => void;
-  onSubmit: (pin: string) => Promise<boolean>; // Returns true if success
+  onSubmit: (pin: string) => Promise<boolean>; // true if success
   title?: string;
+
+  // optional (won’t break existing calls)
+  subtitle?: string;
+  pinLength?: number; // default 6
 }
 
-export function PinModal({ open, onClose, onSubmit, title = "Enter PIN" }: PinModalProps) {
+export function PinModal({
+  open,
+  onClose,
+  onSubmit,
+  title = "Enter PIN",
+  subtitle = "Please enter your 6-digit code to access settings",
+  pinLength = 6,
+}: PinModalProps) {
   const [pin, setPin] = useState("");
-  const [error, setError] = useState(false);
+  const [error, setError] = useState<string>("");
+  const [submitting, setSubmitting] = useState(false);
+  const closeBtnRef = useRef<HTMLButtonElement | null>(null);
+
+  const dots = useMemo(() => Array.from({ length: pinLength }), [pinLength]);
+
+  // Reset each time we open
+  useEffect(() => {
+    if (!open) return;
+    setPin("");
+    setError("");
+    setSubmitting(false);
+
+    // focus close for keyboard users
+    setTimeout(() => closeBtnRef.current?.focus(), 0);
+  }, [open]);
+
+  // Auto-submit when full (matches Replit behavior, but we validate before closing)
+  useEffect(() => {
+    if (!open) return;
+    if (pin.length !== pinLength) return;
+    if (submitting) return;
+
+    const run = async () => {
+      setSubmitting(true);
+      try {
+        const ok = await onSubmit(pin);
+        if (ok) {
+          setPin("");
+          setError("");
+          onClose();
+          return;
+        }
+        setError("Incorrect PIN.");
+        setPin("");
+      } catch {
+        setError("Error verifying PIN.");
+        setPin("");
+      } finally {
+        setSubmitting(false);
+      }
+    };
+
+    // tiny delay feels nicer (same idea as Replit)
+    const t = setTimeout(run, 150);
+    return () => clearTimeout(t);
+  }, [open, pin, pinLength, submitting, onClose, onSubmit]);
 
   if (!open) return null;
 
-  const handleNum = (num: string) => {
-    if (pin.length < 6) {
-      setPin(prev => prev + num);
-      setError(false);
-    }
+  const append = (digit: string) => {
+    if (submitting) return;
+    if (pin.length >= pinLength) return;
+    setError("");
+    setPin((p) => p + digit);
   };
 
-  const handleSubmit = async () => {
-    const success = await onSubmit(pin);
-    if (success) {
-      setPin("");
-      onClose();
-    } else {
-      setError(true);
-      setPin("");
-    }
+  const backspace = () => {
+    if (submitting) return;
+    setError("");
+    setPin((p) => p.slice(0, -1));
+  };
+
+  const onOverlayMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    // close only if user clicked the overlay itself (not the dialog)
+    if (e.target === e.currentTarget && !submitting) onClose();
+  };
+
+  const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (submitting) return;
+
+    if (e.key === "Escape") onClose();
+    if (e.key === "Backspace") backspace();
+
+    // allow typing digits
+    if (/^\d$/.test(e.key)) append(e.key);
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center">
-      <div className="bg-white rounded-2xl shadow-2xl p-6 w-[320px]">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-bold text-slate-800">{title}</h2>
-          <button onClick={onClose}><X className="text-slate-400 hover:text-slate-600" /></button>
-        </div>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      onMouseDown={onOverlayMouseDown}
+      onKeyDown={onKeyDown}
+      role="dialog"
+      aria-modal="true"
+      aria-label={title}
+      tabIndex={-1}
+    >
+      <div className="relative w-full max-w-md rounded-3xl bg-white shadow-2xl overflow-hidden">
+        {/* Close (top-right) */}
+        <button
+          ref={closeBtnRef}
+          type="button"
+          onClick={onClose}
+          disabled={submitting}
+          aria-label="Close"
+          className="absolute right-4 top-4 inline-flex h-10 w-10 items-center justify-center rounded-xl text-slate-400 hover:bg-slate-50 hover:text-slate-700 disabled:opacity-50"
+        >
+          <X className="h-5 w-5" />
+        </button>
 
-        <div className="flex justify-center gap-2 mb-8 h-8">
-          {[...Array(6)].map((_, i) => (
-            <div key={i} className={`w-3 h-3 rounded-full transition-all ${i < pin.length ? 'bg-blue-600 scale-125' : 'bg-slate-200'} ${error ? 'bg-red-500' : ''}`} />
-          ))}
-        </div>
+        <div className="px-10 pb-10 pt-10">
+          {/* Header */}
+          <div className="flex flex-col items-center gap-2 pb-6">
+            <div className="text-3xl font-bold text-slate-800">{title}</div>
+            <div className="text-sm font-medium text-slate-400 text-center">
+              {subtitle}
+            </div>
+          </div>
 
-        <div className="grid grid-cols-3 gap-3 mb-6">
-          {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (
-            <button key={num} onClick={() => handleNum(num.toString())} className="h-16 text-2xl font-semibold text-slate-700 bg-slate-50 rounded-xl hover:bg-blue-50 hover:text-blue-600">
-              {num}
+          {/* Dots */}
+          <div className="flex justify-center gap-4 pb-8">
+            {dots.map((_, i) => (
+              <div
+                key={i}
+                className={[
+                  "h-4 w-4 rounded-full transition-all duration-200",
+                  pin.length > i ? "bg-blue-600 scale-110" : "bg-slate-200",
+                  error ? "bg-red-400" : "",
+                ].join(" ")}
+              />
+            ))}
+          </div>
+
+          {/* Keypad (match Replit: ghost buttons, rounded-2xl, no big Enter button) */}
+          <div className="mx-auto grid w-full max-w-[280px] grid-cols-3 gap-4">
+            {["1","2","3","4","5","6","7","8","9"].map((n) => (
+              <button
+                key={n}
+                type="button"
+                onClick={() => append(n)}
+                disabled={submitting}
+                className="h-16 w-16 rounded-2xl text-2xl font-bold text-slate-700 hover:bg-blue-50 hover:text-blue-700 disabled:opacity-50"
+              >
+                {n}
+              </button>
+            ))}
+
+            <div className="flex items-center justify-center" />
+
+            <button
+              type="button"
+              onClick={() => append("0")}
+              disabled={submitting}
+              className="h-16 w-16 rounded-2xl text-2xl font-bold text-slate-700 hover:bg-blue-50 hover:text-blue-700 disabled:opacity-50"
+            >
+              0
             </button>
-          ))}
-          <div />
-          <button onClick={() => handleNum("0")} className="h-16 text-2xl font-semibold text-slate-700 bg-slate-50 rounded-xl hover:bg-blue-50 hover:text-blue-600">0</button>
-          <button onClick={() => setPin(prev => prev.slice(0, -1))} className="h-16 flex items-center justify-center text-slate-400 bg-slate-50 rounded-xl hover:bg-red-50 hover:text-red-500"><Delete size={24} /></button>
-        </div>
 
-        <button onClick={handleSubmit} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-xl">Enter</button>
+            <button
+              type="button"
+              onClick={backspace}
+              disabled={submitting}
+              aria-label="Delete digit"
+              className="h-16 w-16 rounded-2xl text-slate-400 hover:bg-red-50 hover:text-red-500 disabled:opacity-50 flex items-center justify-center"
+            >
+              <Delete className="h-6 w-6" />
+            </button>
+          </div>
+
+          {/* Error */}
+          {error && (
+            <div className="pt-6 text-center text-sm font-medium text-red-500" aria-live="polite">
+              {error}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

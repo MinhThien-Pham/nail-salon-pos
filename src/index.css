@@ -2,62 +2,99 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --bg: #f8fafc;         /* slate-50 */
+  --panel: #ffffff;
+  --border: #e2e8f0;     /* slate-200 */
+  --muted: #64748b;      /* slate-500 */
+  --text: #0f172a;       /* slate-900 */
+
+  --blue: #2563eb;
+  --blue-weak: rgba(37, 99, 235, 0.10);
+
+  --red: #ef4444;
+  --red-weak: rgba(239, 68, 68, 0.10);
+
+  --shadow: 0 18px 60px rgba(2, 6, 23, 0.12);
+}
+
+html, body, #root {
+  height: 100%;
+}
+
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  background-color: #f3f4f6;
-  color: #1f2937;
+  background: var(--bg);
+  color: var(--text);
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
 }
 
-.container {
-  max-width: 900px;
-  margin: 40px auto;
-  padding: 20px;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+/* Default form look (helps your Admin forms a lot) */
+input, select, textarea {
+  font: inherit;
+  color: var(--text);
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 12px;
+  outline: none;
 }
 
+input:focus, select:focus, textarea:focus {
+  border-color: rgba(37, 99, 235, 0.45);
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+}
+
+/* Default buttons (your Admin pages rely on plain <button> a lot) */
 button {
+  font: inherit;
+  border: 0;
+  border-radius: 12px;
+  padding: 10px 14px;
+  background: transparent; /* IMPORTANT: don't force blue */
+  color: inherit;          /* IMPORTANT: don't force white */
   cursor: pointer;
-  background-color: #3b82f6;
-  color: white;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 4px;
-  font-weight: 500;
-  transition: background 0.2s;
+  transition: transform 0.06s ease, filter 0.15s ease, background 0.15s ease;
 }
 
-button:hover { background-color: #2563eb; }
-button.secondary { background-color: #6b7280; }
-button.secondary:hover { background-color: #4b5563; }
-
-input[type="text"], input[type="password"], input[type="number"] {
-  padding: 8px;
-  border: 1px solid #d1d5db;
-  border-radius: 4px;
-  margin-right: 10px;
+button:hover {
+  filter: brightness(0.97);
 }
 
-.login-screen {
-  text-align: center;
-  margin-top: 100px;
+button:active {
+  transform: translateY(1px);
 }
 
-.form-group { margin-bottom: 12px; }
-.form-section { 
-  background: #f9fafb; 
-  padding: 15px; 
-  border-radius: 6px; 
-  margin-top: 10px; 
-  border: 1px solid #e5e7eb;
+/* If a button has NO className at all, treat it as a default primary button.
+   This keeps your admin pages looking the same, while fixing Sidebar/Nav buttons. */
+button:not([class]) {
+  background: var(--blue);
+  color: #fff;
 }
 
-.staff-list { list-style: none; padding: 0; }
-.staff-item {
-  display: flex;
-  justify-content: space-between;
-  padding: 12px;
-  border-bottom: 1px solid #e5e7eb;
+/* Variants used throughout your existing admin code */
+button.secondary {
+  background: #0f172a;
+  color: #fff;
+}
+
+button.primary {
+  background: var(--blue);
+  color: #fff;
+}
+
+/* Utility classes used by your managers */
+.form-section {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 16px;
+}
+
+.form-group label {
+  display: block;
+  font-weight: 700;
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 6px;
 }
