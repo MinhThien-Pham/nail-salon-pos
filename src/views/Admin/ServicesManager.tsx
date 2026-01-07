@@ -197,9 +197,15 @@ export function ServicesManager({ showCategoryForm, onCategoryFormToggle }: { sh
                             placeholder="Category Name (e.g. Pedicure)"
                             value={newTypeName}
                             onChange={e => setNewTypeName(e.target.value)}
-                            style={{ flex: 1 }}
+                            className="flex-1 h-10 px-3 rounded-xl border border-slate-200 text-sm font-medium text-slate-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition"
                         />
-                        <button onClick={handleCreateType}>Save</button>
+                        <button
+                            type="button"
+                            onClick={handleCreateType}
+                            className="h-10 px-6 rounded-xl bg-blue-600 text-white font-semibold shadow-sm hover:bg-blue-700 active:translate-y-[1px] transition"
+                        >
+                            Save
+                        </button>
                     </div>
                 </div>
             )}
@@ -250,32 +256,42 @@ export function ServicesManager({ showCategoryForm, onCategoryFormToggle }: { sh
                                 <div style={{ display: 'flex', gap: 10 }}>
                                     {isEditingThisType ? (
                                         <>
-                                            <button onClick={saveType} style={{ padding: '4px 8px', fontSize: '0.8em' }}>Save</button>
-                                            <button
-                                                className="secondary"
-                                                onClick={(e) => { e.stopPropagation(); setEditingTypeId(null); }}
-                                                style={{ padding: '4px 8px', fontSize: '0.8em' }}
-                                            >
-                                                Cancel
-                                            </button>
+                                            <>
+                                                <button
+                                                    type="button"
+                                                    onClick={saveType}
+                                                    className="h-8 px-3 rounded-lg bg-blue-50 text-blue-600 font-semibold text-xs hover:bg-blue-100 transition"
+                                                >
+                                                    Save
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => { e.stopPropagation(); setEditingTypeId(null); }}
+                                                    className="h-8 px-3 rounded-lg bg-slate-100 text-slate-700 font-semibold text-xs hover:bg-slate-200 transition"
+                                                >
+                                                    Cancel
+                                                </button>
+                                            </>
                                         </>
                                     ) : (
                                         <>
                                             <button
-                                                style={{ fontSize: '0.8em', padding: '4px 8px', backgroundColor: '#059669', color: 'white' }}
+                                                type="button"
+                                                className="h-8 px-3 rounded-lg bg-green-50 text-green-700 font-semibold text-xs hover:bg-green-100 transition"
                                                 onClick={(e) => startAddService(type.serviceTypeId, e)}
                                             >
                                                 + Add Service
                                             </button>
                                             <button
-                                                className="secondary"
-                                                style={{ fontSize: '0.8em', padding: '4px 8px' }}
+                                                type="button"
+                                                className="h-8 px-3 rounded-lg bg-slate-100 text-slate-700 font-semibold text-xs hover:bg-slate-200 transition"
                                                 onClick={(e) => startEditType(type, e)}
                                             >
                                                 Edit
                                             </button>
                                             <button
-                                                style={{ fontSize: '0.8em', padding: '4px 8px', background: '#fee2e2', color: '#b91c1c' }}
+                                                type="button"
+                                                className="h-8 px-3 rounded-lg bg-red-50 text-red-600 font-semibold text-xs hover:bg-red-100 transition"
                                                 onClick={(e) => handleDeleteType(type.serviceTypeId, e)}
                                             >
                                                 Delete
@@ -294,12 +310,41 @@ export function ServicesManager({ showCategoryForm, onCategoryFormToggle }: { sh
                                         <div style={{ background: '#eff6ff', padding: 15, borderBottom: '1px solid #bfdbfe' }}>
                                             <h5 style={{ marginTop: 0, marginBottom: 10, color: '#1e3a8a' }}>Add Service to {type.name}</h5>
                                             <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr auto', gap: 10 }}>
-                                                <input placeholder="Service Name" value={newServiceName} onChange={e => setNewServiceName(e.target.value)} />
-                                                <input type="number" placeholder="Mins" value={newServiceDuration} onChange={e => setNewServiceDuration(e.target.value)} />
-                                                <input type="number" placeholder="Price ($)" value={newServicePrice} onChange={e => setNewServicePrice(e.target.value)} />
+                                                <input
+                                                    placeholder="Service Name"
+                                                    value={newServiceName}
+                                                    onChange={e => setNewServiceName(e.target.value)}
+                                                    className="w-full h-10 px-3 rounded-xl border border-slate-200 text-sm font-medium text-slate-900 focus:border-blue-500 outline-none transition"
+                                                />
+                                                <input
+                                                    type="number"
+                                                    placeholder="Mins"
+                                                    value={newServiceDuration}
+                                                    onChange={e => setNewServiceDuration(e.target.value)}
+                                                    className="w-full h-10 px-3 rounded-xl border border-slate-200 text-sm font-medium text-slate-900 focus:border-blue-500 outline-none transition"
+                                                />
+                                                <input
+                                                    type="number"
+                                                    placeholder="Price ($)"
+                                                    value={newServicePrice}
+                                                    onChange={e => setNewServicePrice(e.target.value)}
+                                                    className="w-full h-10 px-3 rounded-xl border border-slate-200 text-sm font-medium text-slate-900 focus:border-blue-500 outline-none transition"
+                                                />
                                                 <div style={{ display: 'flex', gap: 5 }}>
-                                                    <button onClick={handleCreateService} style={{ backgroundColor: '#059669' }}>Save</button>
-                                                    <button className="secondary" onClick={() => setAddingServiceToTypeId(null)}>Cancel</button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={handleCreateService}
+                                                        className="h-10 px-6 rounded-xl bg-blue-600 text-white font-semibold shadow-sm hover:bg-blue-700 active:translate-y-[1px] transition"
+                                                    >
+                                                        Save
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        className="h-10 px-6 rounded-xl bg-slate-100 text-slate-700 font-semibold hover:bg-slate-200 transition"
+                                                        onClick={() => setAddingServiceToTypeId(null)}
+                                                    >
+                                                        Cancel
+                                                    </button>
                                                 </div>
                                             </div>
                                         </div>
@@ -352,8 +397,22 @@ export function ServicesManager({ showCategoryForm, onCategoryFormToggle }: { sh
                                                                     </td>
                                                                     <td style={{ padding: '8px 15px', textAlign: 'right' }}>
                                                                         <div style={{ display: 'flex', gap: 5, justifyContent: 'flex-end' }}>
-                                                                            <button onClick={saveService} style={{ padding: '4px 8px', fontSize: '0.8em' }}>Save</button>
-                                                                            <button className="secondary" onClick={() => setEditingServiceId(null)} style={{ padding: '4px 8px', fontSize: '0.8em' }}>Cancel</button>
+                                                                            <div style={{ display: 'flex', gap: 5, justifyContent: 'flex-end' }}>
+                                                                                <button
+                                                                                    type="button"
+                                                                                    onClick={saveService}
+                                                                                    className="h-7 px-3 rounded-lg bg-blue-600 text-white font-semibold text-xs hover:bg-blue-700 transition"
+                                                                                >
+                                                                                    Save
+                                                                                </button>
+                                                                                <button
+                                                                                    type="button"
+                                                                                    className="h-7 px-3 rounded-lg bg-slate-100 text-slate-700 font-semibold text-xs hover:bg-slate-200 transition"
+                                                                                    onClick={() => setEditingServiceId(null)}
+                                                                                >
+                                                                                    Cancel
+                                                                                </button>
+                                                                            </div>
                                                                         </div>
                                                                     </td>
                                                                 </>
@@ -365,14 +424,13 @@ export function ServicesManager({ showCategoryForm, onCategoryFormToggle }: { sh
                                                                     <td style={{ padding: '10px 15px', textAlign: 'right' }}>
                                                                         <div style={{ display: 'flex', gap: 5, justifyContent: 'flex-end' }}>
                                                                             <button
-                                                                                className="secondary"
-                                                                                style={{ padding: '4px 8px', fontSize: '0.75em' }}
+                                                                                className="h-7 px-3 rounded-lg bg-slate-100 text-slate-700 font-semibold text-xs hover:bg-slate-200 transition"
                                                                                 onClick={() => startEditService(s)}
                                                                             >
                                                                                 Edit
                                                                             </button>
                                                                             <button
-                                                                                style={{ padding: '4px 8px', fontSize: '0.75em', background: '#fee2e2', color: '#b91c1c' }}
+                                                                                className="h-7 w-7 rounded-lg bg-red-50 text-red-600 font-semibold text-xs hover:bg-red-100 transition flex items-center justify-center"
                                                                                 onClick={() => handleDeleteService(s.serviceId)}
                                                                             >
                                                                                 ✕

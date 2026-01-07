@@ -137,7 +137,7 @@ export function QueueView({ queueTab }: QueueViewProps) {
 
                     {/* Right: Checkout Button */}
                     <div className="w-[140px] flex justify-end">
-                        <button className="inline-flex items-center justify-center gap-2 text-sm transition-colors min-h-10 bg-green-600 hover:bg-green-700 text-white rounded-xl shadow-lg shadow-green-600/20 font-semibold px-8 whitespace-nowrap active:translate-y-[1px]">
+                        <button className="inline-flex items-center justify-center gap-2 text-sm transition-colors min-h-10 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-lg shadow-blue-600/20 font-semibold px-8 whitespace-nowrap active:translate-y-[1px]">
                             <DollarSign className="w-4 h-4" /> Checkout
                         </button>
                     </div>
@@ -226,7 +226,7 @@ export function QueueView({ queueTab }: QueueViewProps) {
                                                 <button
                                                     type="button"
                                                     onClick={() => handleStart(entry.staffId)}
-                                                    className="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm transition-colors min-h-9 py-2 rounded-lg font-semibold px-6 bg-blue-500 text-white hover:bg-blue-600 shadow-sm active:translate-y-[1px]"
+                                                    className="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm transition-colors min-h-9 py-2 rounded-lg font-semibold px-6 bg-slate-100 text-slate-700 hover:bg-slate-200 active:translate-y-[1px]"
                                                 >
                                                     Start
                                                 </button>

@@ -1,8 +1,8 @@
 // src/views/ClockInModal.tsx
 import { useEffect, useState } from "react";
 import { X, ChevronUp, ChevronDown } from "lucide-react";
-import { Staff } from "../shared/types";
-import { PinModal } from "../components/PinModal";
+import { Staff } from "../../shared/types";
+import { PinModal } from "../../components/PinModal";
 
 interface ClockInModalProps {
     open: boolean;

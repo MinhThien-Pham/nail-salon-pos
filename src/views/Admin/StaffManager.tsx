@@ -125,13 +125,25 @@ export function StaffManager({ showForm, onFormToggle }: { showForm: boolean; on
           </div>
 
           <div style={{ display: 'flex', gap: 5 }}>
-            <button className="secondary" style={{ padding: '4px 8px', fontSize: '0.8em' }} onClick={() => startPinChange(s.staffId)}>
+            <button
+              type="button"
+              className="h-8 px-3 rounded-lg bg-slate-100 text-slate-700 font-semibold text-xs hover:bg-slate-200 transition"
+              onClick={() => startPinChange(s.staffId)}
+            >
               Change PIN
             </button>
-            <button className="secondary" style={{ padding: '4px 8px', fontSize: '0.8em' }} onClick={() => setEditingId(s.staffId)}>
+            <button
+              type="button"
+              className="h-8 px-3 rounded-lg bg-slate-100 text-slate-700 font-semibold text-xs hover:bg-slate-200 transition"
+              onClick={() => setEditingId(s.staffId)}
+            >
               Edit
             </button>
-            <button style={{ backgroundColor: '#ef4444', color: 'white', padding: '4px 8px', fontSize: '0.8em', border: 'none', borderRadius: 4, cursor: 'pointer' }} onClick={() => handleDelete(s.staffId)}>
+            <button
+              type="button"
+              className="h-8 px-3 rounded-lg bg-red-50 text-red-600 font-semibold text-xs hover:bg-red-100 transition"
+              onClick={() => handleDelete(s.staffId)}
+            >
               Del
             </button>
           </div>
@@ -271,14 +283,14 @@ function StaffForm({ initialData, serviceTypes, onSave, onCancel }: { initialDat
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
       <div className="form-group" style={{ gridColumn: 'span 2' }}>
-        <label>Name <span style={{ color: 'red' }}>*</span></label>
+        <label className="block text-sm font-semibold text-slate-700 mb-1.5">Name <span className="text-red-500">*</span></label>
         <input
           value={data.name}
           onChange={e => { setData({ ...data, name: e.target.value }); if (errors.name) setErrors({ ...errors, name: '' }); }}
           placeholder="Jane Doe"
-          style={{ borderColor: errors.name ? 'red' : undefined, width: '100%', padding: 8 }}
+          className={`w-full h-10 px-3 rounded-xl border text-sm font-medium text-slate-900 focus:ring-2 focus:ring-blue-500/20 outline-none transition ${errors.name ? 'border-red-500 focus:border-red-500' : 'border-slate-200 focus:border-blue-500'}`}
         />
-        {errors.name && <small style={{ color: 'red' }}>{errors.name}</small>}
+        {errors.name && <small className="text-red-500 text-xs mt-1 block">{errors.name}</small>}
       </div>
 
       <div className="form-group" style={{ gridColumn: 'span 2', background: '#f9fafb', padding: 10, borderRadius: 4 }}>
@@ -294,20 +306,17 @@ function StaffForm({ initialData, serviceTypes, onSave, onCancel }: { initialDat
 
       {data.isTech && (
         <div className="form-group" style={{ gridColumn: 'span 2' }}>
-          <label style={{ display: 'block', marginBottom: 5 }}>Skill Set:</label>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+          <label className="block text-sm font-semibold text-slate-700 mb-2">Skill Set:</label>
+          <div className="flex flex-wrap gap-2">
             {serviceTypes.map(t => (
               <button
                 key={t.serviceTypeId}
+                type="button"
                 onClick={() => toggleSkill(t.serviceTypeId)}
-                style={{
-                  padding: '4px 10px',
-                  borderRadius: '15px',
-                  border: data.skillsTypeIds.includes(t.serviceTypeId) ? '1px solid #2563eb' : '1px solid #d1d5db',
-                  backgroundColor: data.skillsTypeIds.includes(t.serviceTypeId) ? '#eff6ff' : 'white',
-                  color: data.skillsTypeIds.includes(t.serviceTypeId) ? '#1e40af' : '#374151',
-                  cursor: 'pointer'
-                }}
+                className={`px-3 py-1 rounded-full text-xs font-semibold border transition ${data.skillsTypeIds.includes(t.serviceTypeId)
+                    ? 'bg-blue-50 text-blue-700 border-blue-200'
+                    : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                  }`}
               >
                 {t.name}
               </button>
@@ -319,12 +328,24 @@ function StaffForm({ initialData, serviceTypes, onSave, onCancel }: { initialDat
       {data.isTech && (
         <div style={{ gridColumn: 'span 2', background: '#eff6ff', padding: 10, borderRadius: 4, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
           <div className="form-group">
-            <label>Commission Rate (0-1):</label>
-            <input type="number" step="0.01" value={data.commRate} onChange={e => setData({ ...data, commRate: e.target.value })} style={{ width: '100%', padding: 8 }} />
+            <label className="block text-sm font-semibold text-slate-700 mb-1.5">Commission Rate (0-1):</label>
+            <input
+              type="number"
+              step="0.01"
+              value={data.commRate}
+              onChange={e => setData({ ...data, commRate: e.target.value })}
+              className="w-full h-10 px-3 rounded-xl border border-slate-200 text-sm font-medium text-slate-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition"
+            />
           </div>
           <div className="form-group">
-            <label>Check Payout Rate (0-1):</label>
-            <input type="number" step="0.01" value={data.checkRate} onChange={e => setData({ ...data, checkRate: e.target.value })} style={{ width: '100%', padding: 8 }} />
+            <label className="block text-sm font-semibold text-slate-700 mb-1.5">Check Payout Rate (0-1):</label>
+            <input
+              type="number"
+              step="0.01"
+              value={data.checkRate}
+              onChange={e => setData({ ...data, checkRate: e.target.value })}
+              className="w-full h-10 px-3 rounded-xl border border-slate-200 text-sm font-medium text-slate-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition"
+            />
           </div>
         </div>
       )}
@@ -337,8 +358,20 @@ function StaffForm({ initialData, serviceTypes, onSave, onCancel }: { initialDat
       </div>
 
       <div style={{ gridColumn: 'span 2', marginTop: 5, display: 'flex', gap: 10 }}>
-        <button className="primary" onClick={handleSubmit}>Save Staff</button>
-        <button className="secondary" onClick={onCancel}>Cancel</button>
+        <button
+          type="button"
+          className="h-10 px-6 rounded-xl bg-blue-600 text-white font-semibold shadow-sm hover:bg-blue-700 active:translate-y-[1px] transition"
+          onClick={handleSubmit}
+        >
+          Save Staff
+        </button>
+        <button
+          type="button"
+          className="h-10 px-6 rounded-xl bg-slate-100 text-slate-700 font-semibold hover:bg-slate-200 transition"
+          onClick={onCancel}
+        >
+          Cancel
+        </button>
       </div>
     </div>
   );
