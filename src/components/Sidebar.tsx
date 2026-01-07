@@ -1,9 +1,9 @@
 // src/components/Sidebar.tsx
 import { useEffect, useMemo, useState } from "react";
-import { Calendar, Gift, LayoutDashboard, Menu, Settings, LogOut, LogIn } from "lucide-react";
+import { Calendar, Gift, LayoutDashboard, Menu, Settings, LogOut, LogIn, FileText } from "lucide-react";
 
 interface SidebarProps {
-  activeView: string; // "QUEUE" | "CALENDAR" | "GIFT" | "ADMIN"
+  activeView: string; // "QUEUE" | "CALENDAR" | "GIFT" | "ADMIN" | "RECEIPT"
   onNavigate: (view: string) => void;
   onSettingsClick: () => void;
   onClockInClick: () => void;
@@ -78,6 +78,13 @@ export function Sidebar({ activeView, onNavigate, onSettingsClick, onClockInClic
           collapsed={collapsed}
           active={activeView === "GIFT"}
           onClick={() => onNavigate("GIFT")}
+        />
+        <NavItem
+          icon={<FileText className="h-7 w-7" />}
+          label="Receipt"
+          collapsed={collapsed}
+          active={activeView === "RECEIPT"}
+          onClick={() => onNavigate("RECEIPT")}
         />
       </nav>
 

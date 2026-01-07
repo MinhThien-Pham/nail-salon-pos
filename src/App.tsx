@@ -7,8 +7,10 @@ import { QueueView } from "./views/Queue/QueueView";
 import { ClockInView } from "./views/ClockIn/ClockInView";
 import { ClockOutView } from "./views/ClockOut/ClockOutView";
 import { GiftCardView } from "./views/GiftCard/GiftCardView";
+import { ReceiptView } from "./views/Receipt/ReceiptView";
+import { CalendarView } from "./views/Calendar/CalendarView";
 
-type RouteView = "QUEUE" | "CALENDAR" | "GIFT" | "ADMIN" | "CLOCKIN" | "CLOCKOUT";
+type RouteView = "QUEUE" | "CALENDAR" | "GIFT" | "ADMIN" | "CLOCKIN" | "CLOCKOUT" | "RECEIPT";
 type QueueTab = "LIST" | "BOXES";
 
 export default function App() {
@@ -104,37 +106,15 @@ export default function App() {
           <div className="h-full">
             <GiftCardView />
           </div>
+        ) : route === "RECEIPT" ? (
+          // Receipt view - full screen without wrapper
+          <div className="h-full">
+            <ReceiptView />
+          </div>
         ) : (
-          // Calendar view - with card wrapper (legacy, will be updated later)
-          <div className="h-full bg-white border border-slate-200 rounded-[28px] shadow-sm overflow-hidden flex flex-col">
-            {/* Header row: title left, tabs centered, actions right */}
-            <div className="px-6 py-4 border-b border-slate-100">
-              <div className="grid grid-cols-[auto,1fr,auto] items-center gap-4">
-                <div className="min-w-0">
-                  <div className="text-xl font-semibold text-slate-900 leading-tight">{title}</div>
-                </div>
-
-                {/* Center controls */}
-                <div className="justify-self-center">
-                  {/* Future: add view-specific controls here */}
-                </div>
-
-                {/* Right actions */}
-                <div className="justify-self-end flex items-center gap-2">
-                  {/* Future: add view-specific actions here */}
-                </div>
-              </div>
-            </div>
-
-            {/* Body */}
-            <div className="flex-1 overflow-auto bg-slate-50 p-6">
-              {route === "CALENDAR" && (
-                <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-6">
-                  <div className="text-lg font-semibold mb-2">Calendar View</div>
-                  <div className="text-sm text-slate-500">(Wire later.)</div>
-                </div>
-              )}
-            </div>
+          // Calendar view - full screen without wrapper
+          <div className="h-full">
+            <CalendarView />
           </div>
         )}
       </main>
