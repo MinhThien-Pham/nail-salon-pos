@@ -13,3 +13,6 @@ export type { FormFieldProps } from './FormField';
 
 export { Badge } from './Badge';
 export type { BadgeProps } from './Badge';
+
+export { ExpandCollapseIcon } from './ExpandCollapseIcon';
+export type { ExpandCollapseIconProps } from './ExpandCollapseIcon';

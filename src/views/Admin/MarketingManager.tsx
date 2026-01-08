@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Promo, LoyaltyTier, LifecycleStage, Reward, Audience, RewardRedemption } from '../../shared/types';
+import { Button, Alert, ExpandCollapseIcon } from '../../components/ui';
 
 export function MarketingManager() {
     const [promos, setPromos] = useState<Promo[]>([]);
@@ -9,6 +10,10 @@ export function MarketingManager() {
     const [editingPromoId, setEditingPromoId] = useState<number | null>(null);
     const [isCreatingRedemption, setIsCreatingRedemption] = useState(false);
     const [editingRedemptionId, setEditingRedemptionId] = useState<number | null>(null);
+
+    // Expand/Collapse State for sections
+    const [expandedPromoSections, setExpandedPromoSections] = useState<Set<string>>(new Set(['LIVE', 'FUTURE', 'EXPIRED', 'INACTIVE']));
+    const [expandedRedemptionSections, setExpandedRedemptionSections] = useState<Set<string>>(new Set(['ACTIVE', 'INACTIVE']));
 
     // Feedback State
     const [feedback, setFeedback] = useState<{ text: string, type: 'success' | 'error' } | null>(null);
@@ -91,6 +96,31 @@ export function MarketingManager() {
                 setFeedback({ text: 'Failed to delete redemption.', type: 'error' });
             }
         }
+    };
+
+    // Toggle section expansion
+    const togglePromoSection = (section: string) => {
+        setExpandedPromoSections(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(section)) {
+                newSet.delete(section);
+            } else {
+                newSet.add(section);
+            }
+            return newSet;
+        });
+    };
+
+    const toggleRedemptionSection = (section: string) => {
+        setExpandedRedemptionSections(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(section)) {
+                newSet.delete(section);
+            } else {
+                newSet.add(section);
+            }
+            return newSet;
+        });
     };
 
     // --- HELPER: CATEGORIZE PROMOS ---
@@ -248,21 +278,21 @@ export function MarketingManager() {
                     </div>
 
                     <div style={{ display: 'flex', gap: 5 }}>
-                        <button
-                            type="button"
-                            className="h-7 px-3 rounded-lg bg-slate-100 text-slate-700 font-semibold text-xs hover:bg-slate-200 transition"
+                        <Button
+                            variant="slate"
+                            size="xs"
                             onClick={() => setEditingPromoId(p.promoId)}
                         >
                             Edit
-                        </button>
+                        </Button>
                         {!isSystem && (
-                            <button
-                                type="button"
-                                className="h-7 px-3 rounded-lg bg-red-50 text-red-600 font-semibold text-xs hover:bg-red-100 transition"
+                            <Button
+                                variant="danger"
+                                size="xs"
                                 onClick={() => handleDeletePromo(p.promoId)}
                             >
                                 Del
-                            </button>
+                            </Button>
                         )}
                     </div>
                 </div>
@@ -312,20 +342,20 @@ export function MarketingManager() {
                         </div>
                     </div>
                     <div style={{ display: 'flex', gap: 5 }}>
-                        <button
-                            type="button"
-                            className="h-7 px-3 rounded-lg bg-slate-100 text-slate-700 font-semibold text-xs hover:bg-slate-200 transition"
+                        <Button
+                            variant="slate"
+                            size="xs"
                             onClick={() => setEditingRedemptionId(r.redemptionId)}
                         >
                             Edit
-                        </button>
-                        <button
-                            type="button"
-                            className="h-7 px-3 rounded-lg bg-red-50 text-red-600 font-semibold text-xs hover:bg-red-100 transition"
+                        </Button>
+                        <Button
+                            variant="danger"
+                            size="xs"
                             onClick={() => handleDeleteRedemption(r.redemptionId)}
                         >
                             Del
-                        </button>
+                        </Button>
                     </div>
                 </div>
             </div>
@@ -336,13 +366,7 @@ export function MarketingManager() {
         <div>
             {/* FEEDBACK BANNER */}
             {feedback && (
-                <div style={{
-                    marginBottom: 20, padding: 10, borderRadius: 6,
-                    background: feedback.type === 'error' ? '#fee2e2' : '#dcfce7',
-                    color: feedback.type === 'error' ? '#b91c1c' : '#166534'
-                }}>
-                    {feedback.text}
-                </div>
+                <Alert type={feedback.type} message={feedback.text} className="mb-5" />
             )}
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginTop: 20 }}>
@@ -352,13 +376,13 @@ export function MarketingManager() {
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
                         <h2><strong>Promotions</strong></h2>
                         {!isCreatingPromo && !editingPromoId && (
-                            <button
-                                type="button"
-                                className="h-8 px-4 rounded-xl bg-blue-600 text-white font-semibold text-xs hover:bg-blue-700 transition"
+                            <Button
+                                variant="blue"
+                                size="sm"
                                 onClick={() => setIsCreatingPromo(true)}
                             >
                                 + Add Promo
-                            </button>
+                            </Button>
                         )}
                     </div>
 
@@ -366,33 +390,116 @@ export function MarketingManager() {
 
                     <div className="form-section" style={{ background: '#f9fafb', border: '1px solid #e5e7eb' }}>
                         {/* LIVE NOW */}
-                        {live.length > 0 && (
-                            <div style={{ marginBottom: 20 }}>
-                                <h3 style={{ color: '#166534', borderBottom: '2px solid #22c55e', paddingBottom: 5, marginTop: 0 }}><strong>🟢 Live Now</strong></h3>
-                                {live.map(p => renderPromoItem(p, 'LIVE'))}
+                        <div style={{ marginBottom: 20 }}>
+                            <div
+                                onClick={() => togglePromoSection('LIVE')}
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 10,
+                                    cursor: 'pointer',
+                                    paddingBottom: 5,
+                                    borderBottom: '2px solid #22c55e',
+                                    marginBottom: 10
+                                }}
+                            >
+                                <ExpandCollapseIcon isExpanded={expandedPromoSections.has('LIVE')} />
+                                <h3 style={{ color: '#166534', marginTop: 0, marginBottom: 0, flex: 1 }}>
+                                    <strong>🟢 Live Now</strong>
+                                </h3>
+                                <span style={{ fontSize: '0.9em', color: '#6b7280' }}>
+                                    ({live.length} {live.length === 1 ? 'promo' : 'promos'})
+                                </span>
                             </div>
-                        )}
+                            {expandedPromoSections.has('LIVE') && (
+                                live.length > 0 ? live.map(p => renderPromoItem(p, 'LIVE')) :
+                                    <p style={{ color: '#999', fontSize: '0.9em', marginLeft: 36 }}>No live promos.</p>
+                            )}
+                        </div>
 
                         {/* SCHEDULED */}
-                        {scheduled.length > 0 && (
-                            <div style={{ marginBottom: 20 }}>
-                                <h3 style={{ color: '#1e40af', borderBottom: '2px solid #3b82f6', paddingBottom: 5, marginTop: 0 }}><strong>⏳ Scheduled</strong></h3>
-                                {scheduled.map(p => renderPromoItem(p, 'FUTURE'))}
+                        <div style={{ marginBottom: 20 }}>
+                            <div
+                                onClick={() => togglePromoSection('FUTURE')}
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 10,
+                                    cursor: 'pointer',
+                                    paddingBottom: 5,
+                                    borderBottom: '2px solid #3b82f6',
+                                    marginBottom: 10
+                                }}
+                            >
+                                <ExpandCollapseIcon isExpanded={expandedPromoSections.has('FUTURE')} />
+                                <h3 style={{ color: '#1e40af', marginTop: 0, marginBottom: 0, flex: 1 }}>
+                                    <strong>⏳ Scheduled</strong>
+                                </h3>
+                                <span style={{ fontSize: '0.9em', color: '#6b7280' }}>
+                                    ({scheduled.length} {scheduled.length === 1 ? 'promo' : 'promos'})
+                                </span>
                             </div>
-                        )}
+                            {expandedPromoSections.has('FUTURE') && (
+                                scheduled.length > 0 ? scheduled.map(p => renderPromoItem(p, 'FUTURE')) :
+                                    <p style={{ color: '#999', fontSize: '0.9em', marginLeft: 36 }}>No scheduled promos.</p>
+                            )}
+                        </div>
 
                         {/* EXPIRED */}
-                        {expired.length > 0 && (
-                            <div style={{ marginBottom: 20 }}>
-                                <h3 style={{ color: '#92400e', borderBottom: '2px solid #f59e0b', paddingBottom: 5, marginTop: 0 }}><strong>⚠️ Expired (Active)</strong></h3>
-                                {expired.map(p => renderPromoItem(p, 'EXPIRED'))}
+                        <div style={{ marginBottom: 20 }}>
+                            <div
+                                onClick={() => togglePromoSection('EXPIRED')}
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 10,
+                                    cursor: 'pointer',
+                                    paddingBottom: 5,
+                                    borderBottom: '2px solid #f59e0b',
+                                    marginBottom: 10
+                                }}
+                            >
+                                <ExpandCollapseIcon isExpanded={expandedPromoSections.has('EXPIRED')} />
+                                <h3 style={{ color: '#92400e', marginTop: 0, marginBottom: 0, flex: 1 }}>
+                                    <strong>⚠️ Expired (Active)</strong>
+                                </h3>
+                                <span style={{ fontSize: '0.9em', color: '#6b7280' }}>
+                                    ({expired.length} {expired.length === 1 ? 'promo' : 'promos'})
+                                </span>
                             </div>
-                        )}
+                            {expandedPromoSections.has('EXPIRED') && (
+                                expired.length > 0 ? expired.map(p => renderPromoItem(p, 'EXPIRED')) :
+                                    <p style={{ color: '#999', fontSize: '0.9em', marginLeft: 36 }}>No expired promos.</p>
+                            )}
+                        </div>
 
                         {/* INACTIVE */}
-                        <h3 style={{ color: '#6b7280', borderBottom: '2px solid #6b7280', paddingBottom: 5, marginTop: 20 }}><strong>⚪ Inactive</strong></h3>
-                        {inactive.map(p => renderPromoItem(p, 'INACTIVE'))}
-                        {inactive.length === 0 && <p style={{ color: '#999', fontSize: '0.9em' }}>No inactive promos.</p>}
+                        <div>
+                            <div
+                                onClick={() => togglePromoSection('INACTIVE')}
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 10,
+                                    cursor: 'pointer',
+                                    paddingBottom: 5,
+                                    borderBottom: '2px solid #6b7280',
+                                    marginBottom: 10
+                                }}
+                            >
+                                <ExpandCollapseIcon isExpanded={expandedPromoSections.has('INACTIVE')} />
+                                <h3 style={{ color: '#6b7280', marginTop: 0, marginBottom: 0, flex: 1 }}>
+                                    <strong>⚪ Inactive</strong>
+                                </h3>
+                                <span style={{ fontSize: '0.9em', color: '#6b7280' }}>
+                                    ({inactive.length} {inactive.length === 1 ? 'promo' : 'promos'})
+                                </span>
+                            </div>
+                            {expandedPromoSections.has('INACTIVE') && (
+                                inactive.length > 0 ? inactive.map(p => renderPromoItem(p, 'INACTIVE')) :
+                                    <p style={{ color: '#999', fontSize: '0.9em', marginLeft: 36 }}>No inactive promos.</p>
+                            )}
+                        </div>
                     </div>
                 </div>
 
@@ -401,26 +508,76 @@ export function MarketingManager() {
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
                         <h2><strong>Redemptions</strong></h2>
                         {!isCreatingRedemption && !editingRedemptionId && (
-                            <button
-                                type="button"
-                                className="h-8 px-4 rounded-xl bg-blue-600 text-white font-semibold text-xs hover:bg-blue-700 transition"
+                            <Button
+                                variant="blue"
+                                size="sm"
                                 onClick={() => setIsCreatingRedemption(true)}
                             >
                                 + Add Redemption
-                            </button>
+                            </Button>
                         )}
                     </div>
 
                     {isCreatingRedemption && <div className="form-section" style={{ border: '2px solid #3b82f6' }}><RedemptionForm onSave={handleSaveRedemption} onCancel={() => setIsCreatingRedemption(false)} /></div>}
 
                     <div className="form-section" style={{ background: '#f9fafb', border: '1px solid #e5e7eb' }}>
-                        <h3 style={{ color: '#166534', borderBottom: '2px solid #22c55e', paddingBottom: 5, marginTop: 0 }}><strong>🟢 Active</strong></h3>
-                        {redemptions.filter(r => r.isActive).map(renderRedemptionItem)}
-                        {redemptions.filter(r => r.isActive).length === 0 && <p style={{ color: '#999', fontSize: '0.9em' }}>No active rewards.</p>}
+                        {/* ACTIVE */}
+                        <div style={{ marginBottom: 20 }}>
+                            <div
+                                onClick={() => toggleRedemptionSection('ACTIVE')}
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 10,
+                                    cursor: 'pointer',
+                                    paddingBottom: 5,
+                                    borderBottom: '2px solid #22c55e',
+                                    marginBottom: 10
+                                }}
+                            >
+                                <ExpandCollapseIcon isExpanded={expandedRedemptionSections.has('ACTIVE')} />
+                                <h3 style={{ color: '#166534', marginTop: 0, marginBottom: 0, flex: 1 }}>
+                                    <strong>🟢 Active</strong>
+                                </h3>
+                                <span style={{ fontSize: '0.9em', color: '#6b7280' }}>
+                                    ({redemptions.filter(r => r.isActive).length} {redemptions.filter(r => r.isActive).length === 1 ? 'reward' : 'rewards'})
+                                </span>
+                            </div>
+                            {expandedRedemptionSections.has('ACTIVE') && (
+                                redemptions.filter(r => r.isActive).length > 0 ?
+                                    redemptions.filter(r => r.isActive).map(renderRedemptionItem) :
+                                    <p style={{ color: '#999', fontSize: '0.9em', marginLeft: 36 }}>No active rewards.</p>
+                            )}
+                        </div>
 
-                        <h3 style={{ color: '#6b7280', borderBottom: '2px solid #6b7280', paddingBottom: 5, marginTop: 20 }}><strong>⚪ Inactive</strong></h3>
-                        {redemptions.filter(r => !r.isActive).map(renderRedemptionItem)}
-                        {redemptions.filter(r => !r.isActive).length === 0 && <p style={{ color: '#999', fontSize: '0.9em' }}>No inactive rewards.</p>}
+                        {/* INACTIVE */}
+                        <div>
+                            <div
+                                onClick={() => toggleRedemptionSection('INACTIVE')}
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 10,
+                                    cursor: 'pointer',
+                                    paddingBottom: 5,
+                                    borderBottom: '2px solid #6b7280',
+                                    marginBottom: 10
+                                }}
+                            >
+                                <ExpandCollapseIcon isExpanded={expandedRedemptionSections.has('INACTIVE')} />
+                                <h3 style={{ color: '#6b7280', marginTop: 0, marginBottom: 0, flex: 1 }}>
+                                    <strong>⚪ Inactive</strong>
+                                </h3>
+                                <span style={{ fontSize: '0.9em', color: '#6b7280' }}>
+                                    ({redemptions.filter(r => !r.isActive).length} {redemptions.filter(r => !r.isActive).length === 1 ? 'reward' : 'rewards'})
+                                </span>
+                            </div>
+                            {expandedRedemptionSections.has('INACTIVE') && (
+                                redemptions.filter(r => !r.isActive).length > 0 ?
+                                    redemptions.filter(r => !r.isActive).map(renderRedemptionItem) :
+                                    <p style={{ color: '#999', fontSize: '0.9em', marginLeft: 36 }}>No inactive rewards.</p>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -515,8 +672,8 @@ function PromoForm({ initialData, onSave, onCancel }: any) {
             type="button"
             onClick={onClick}
             className={`px-3 py-1 rounded-full text-xs font-semibold border transition mb-2 mr-2 ${isSelected
-                    ? 'bg-blue-50 text-blue-700 border-blue-200'
-                    : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                ? 'bg-blue-50 text-blue-700 border-blue-200'
+                : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
                 }`}
         >
             {label}
@@ -694,20 +851,18 @@ function PromoForm({ initialData, onSave, onCancel }: any) {
             </div>
 
             <div style={{ gridColumn: 'span 2', display: 'flex', gap: 10 }}>
-                <button
-                    type="button"
-                    className="h-10 px-6 rounded-xl bg-blue-600 text-white font-semibold shadow-sm hover:bg-blue-700 active:translate-y-[1px] transition"
+                <Button
+                    variant="primary"
                     onClick={handleSubmit}
                 >
                     Save
-                </button>
-                <button
-                    type="button"
-                    className="h-10 px-6 rounded-xl bg-slate-100 text-slate-700 font-semibold hover:bg-slate-200 transition"
+                </Button>
+                <Button
+                    variant="secondary"
                     onClick={onCancel}
                 >
                     Cancel
-                </button>
+                </Button>
             </div>
         </div>
     );

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Settings } from '../../shared/types';
 import { PinModal } from '../../components/PinModal';
+import { Button, Input, Alert } from '../../components/ui';
 
 export function SettingsManager() {
     const [settings, setSettings] = useState<Settings | null>(null);
@@ -22,6 +23,14 @@ export function SettingsManager() {
     useEffect(() => {
         loadSettings();
     }, []);
+
+    // Auto-dismiss feedback
+    useEffect(() => {
+        if (pinMessage.text) {
+            const timer = setTimeout(() => setPinMessage({ text: '', type: 'success' }), 3000);
+            return () => clearTimeout(timer);
+        }
+    }, [pinMessage]);
 
     const loadSettings = async () => {
         const s = await window.api.getSettings();
@@ -48,7 +57,6 @@ export function SettingsManager() {
     const savePayroll = async () => {
         await window.api.updateSettings(payrollDraft);
         setPinMessage({ text: 'Payroll settings saved.', type: 'success' });
-        setTimeout(() => setPinMessage({ text: '', type: 'success' }), 3000);
         setIsEditingPayroll(false);
         loadSettings();
     };
@@ -70,7 +78,6 @@ export function SettingsManager() {
     const saveLoyalty = async () => {
         await window.api.updateSettings(loyaltyDraft);
         setPinMessage({ text: 'Loyalty rules saved.', type: 'success' });
-        setTimeout(() => setPinMessage({ text: '', type: 'success' }), 3000);
         setIsEditingLoyalty(false);
         loadSettings();
     };
@@ -120,10 +127,9 @@ export function SettingsManager() {
 
     return (
         <div>
+            {/* Feedback Alert */}
             {pinMessage.text && (
-                <div style={{ marginBottom: 20, padding: 10, borderRadius: 6, background: pinMessage.type === 'error' ? '#fee2e2' : '#dcfce7', color: pinMessage.type === 'error' ? '#b91c1c' : '#166534' }}>
-                    {pinMessage.text}
-                </div>
+                <Alert type={pinMessage.type} message={pinMessage.text} className="mb-5" />
             )}
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
@@ -133,13 +139,9 @@ export function SettingsManager() {
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 }}>
                         <h3 style={{ margin: 0 }}><strong>Payroll Configuration</strong></h3>
                         {!isEditingPayroll && (
-                            <button
-                                type="button"
-                                className="h-8 px-4 rounded-lg bg-slate-100 text-slate-700 font-semibold text-xs hover:bg-slate-200 transition"
-                                onClick={startEditPayroll}
-                            >
+                            <Button variant="slate" size="sm" onClick={startEditPayroll}>
                                 Edit
-                            </button>
+                            </Button>
                         )}
                     </div>
 
@@ -192,20 +194,12 @@ export function SettingsManager() {
                             </div>
 
                             <div className="flex gap-2 pt-2">
-                                <button
-                                    type="button"
-                                    onClick={savePayroll}
-                                    className="h-10 px-6 rounded-xl bg-blue-600 text-white font-semibold shadow-sm hover:bg-blue-700 active:translate-y-[1px] transition"
-                                >
+                                <Button variant="primary" onClick={savePayroll}>
                                     Save
-                                </button>
-                                <button
-                                    type="button"
-                                    className="h-10 px-6 rounded-xl bg-slate-100 text-slate-700 font-semibold hover:bg-slate-200 transition"
-                                    onClick={cancelEditPayroll}
-                                >
+                                </Button>
+                                <Button variant="secondary" onClick={cancelEditPayroll}>
                                     Cancel
-                                </button>
+                                </Button>
                             </div>
                         </div>
                     ) : (
@@ -229,26 +223,22 @@ export function SettingsManager() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
                     {/* 2. OWNER SECURITY */}
-                    <button
-                        type="button"
+                    <Button
+                        variant="danger"
                         onClick={startPinChange}
-                        className="w-full h-12 px-4 rounded-xl bg-red-50 text-red-600 font-bold hover:bg-red-100 border border-red-100 transition active:translate-y-[1px]"
+                        className="w-full h-12 font-bold border border-red-100"
                     >
                         Change Owner PIN
-                    </button>
+                    </Button>
 
                     {/* 3. LOYALTY RULES */}
                     <div className="form-section">
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 }}>
                             <h3 style={{ margin: 0 }}><strong>Loyalty Rules</strong></h3>
                             {!isEditingLoyalty && (
-                                <button
-                                    type="button"
-                                    className="h-8 px-4 rounded-lg bg-slate-100 text-slate-700 font-semibold text-xs hover:bg-slate-200 transition"
-                                    onClick={startEditLoyalty}
-                                >
+                                <Button variant="slate" size="sm" onClick={startEditLoyalty}>
                                     Edit
-                                </button>
+                                </Button>
                             )}
                         </div>
 
@@ -327,20 +317,12 @@ export function SettingsManager() {
                                     )}
                                 </div>
                                 <div className="flex gap-2 mt-6">
-                                    <button
-                                        type="button"
-                                        onClick={saveLoyalty}
-                                        className="h-10 px-6 rounded-xl bg-blue-600 text-white font-semibold shadow-sm hover:bg-blue-700 active:translate-y-[1px] transition"
-                                    >
+                                    <Button variant="primary" onClick={saveLoyalty}>
                                         Save
-                                    </button>
-                                    <button
-                                        type="button"
-                                        className="h-10 px-6 rounded-xl bg-slate-100 text-slate-700 font-semibold hover:bg-slate-200 transition"
-                                        onClick={cancelEditLoyalty}
-                                    >
+                                    </Button>
+                                    <Button variant="secondary" onClick={cancelEditLoyalty}>
                                         Cancel
-                                    </button>
+                                    </Button>
                                 </div>
                             </>
                         ) : (

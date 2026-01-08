@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Staff, Role, ServiceType } from '../../shared/types';
 import { PinModal } from '../../components/PinModal';
-import { Button, Alert, Badge } from '../../components/ui';
+import { Button, Alert, Badge, ExpandCollapseIcon } from '../../components/ui';
 
 export function StaffManager({ showForm, onFormToggle }: { showForm: boolean; onFormToggle: () => void }) {
   const [staffList, setStaffList] = useState<Staff[]>([]);
@@ -9,6 +9,9 @@ export function StaffManager({ showForm, onFormToggle }: { showForm: boolean; on
 
   // UI State
   const [editingId, setEditingId] = useState<number | null>(null);
+
+  // Expand/Collapse State
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['ACTIVE', 'INACTIVE']));
 
   // Feedback State
   const [feedback, setFeedback] = useState<{ text: string, type: 'success' | 'error' } | null>(null);
@@ -90,6 +93,18 @@ export function StaffManager({ showForm, onFormToggle }: { showForm: boolean; on
     return false;
   };
 
+  const toggleSection = (section: string) => {
+    setExpandedSections(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(section)) {
+        newSet.delete(section);
+      } else {
+        newSet.add(section);
+      }
+      return newSet;
+    });
+  };
+
   // --- Render Helpers ---
   const renderStaffItem = (s: Staff) => {
     if (editingId === s.staffId) {
@@ -160,11 +175,63 @@ export function StaffManager({ showForm, onFormToggle }: { showForm: boolean; on
       )}
 
       <div className="form-section">
-        <h4 style={{ color: '#166534', borderBottom: '2px solid #22c55e', paddingBottom: 5, marginTop: 0 }}><strong>🟢 Active</strong></h4>
-        {staffList.filter(s => s.isActive).map(renderStaffItem)}
+        {/* ACTIVE STAFF */}
+        <div style={{ marginBottom: 20 }}>
+          <div
+            onClick={() => toggleSection('ACTIVE')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              cursor: 'pointer',
+              paddingBottom: 5,
+              borderBottom: '2px solid #22c55e',
+              marginBottom: 10
+            }}
+          >
+            <ExpandCollapseIcon isExpanded={expandedSections.has('ACTIVE')} />
+            <h4 style={{ color: '#166534', marginTop: 0, marginBottom: 0, flex: 1 }}>
+              <strong>🟢 Active</strong>
+            </h4>
+            <span style={{ fontSize: '0.9em', color: '#6b7280' }}>
+              ({staffList.filter(s => s.isActive).length} {staffList.filter(s => s.isActive).length === 1 ? 'staff' : 'staff'})
+            </span>
+          </div>
+          {expandedSections.has('ACTIVE') && (
+            staffList.filter(s => s.isActive).length > 0 ?
+              staffList.filter(s => s.isActive).map(renderStaffItem) :
+              <p style={{ color: '#999', fontSize: '0.9em', marginLeft: 36 }}>No active staff members.</p>
+          )}
+        </div>
 
-        <h4 style={{ color: '#6b7280', borderBottom: '2px solid #6b7280', paddingBottom: 5, marginTop: 20 }}><strong>⚪ Inactive</strong></h4>
-        {staffList.filter(s => !s.isActive).map(renderStaffItem)}
+        {/* INACTIVE STAFF */}
+        <div>
+          <div
+            onClick={() => toggleSection('INACTIVE')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              cursor: 'pointer',
+              paddingBottom: 5,
+              borderBottom: '2px solid #6b7280',
+              marginBottom: 10
+            }}
+          >
+            <ExpandCollapseIcon isExpanded={expandedSections.has('INACTIVE')} />
+            <h4 style={{ color: '#6b7280', marginTop: 0, marginBottom: 0, flex: 1 }}>
+              <strong>⚪ Inactive</strong>
+            </h4>
+            <span style={{ fontSize: '0.9em', color: '#6b7280' }}>
+              ({staffList.filter(s => !s.isActive).length} {staffList.filter(s => !s.isActive).length === 1 ? 'staff' : 'staff'})
+            </span>
+          </div>
+          {expandedSections.has('INACTIVE') && (
+            staffList.filter(s => !s.isActive).length > 0 ?
+              staffList.filter(s => !s.isActive).map(renderStaffItem) :
+              <p style={{ color: '#999', fontSize: '0.9em', marginLeft: 36 }}>No inactive staff members.</p>
+          )}
+        </div>
       </div>
 
       <PinModal

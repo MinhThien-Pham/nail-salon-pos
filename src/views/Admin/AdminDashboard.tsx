@@ -3,6 +3,7 @@ import { StaffManager } from "./StaffManager";
 import { MarketingManager } from "./MarketingManager";
 import { SettingsManager } from "./SettingsManager";
 import { ServicesManager } from "./ServicesManager";
+import { Button } from "../../components/ui";
 
 export type AdminView = "STAFF" | "SERVICES" | "MARKETING" | "SETTINGS";
 
@@ -51,20 +52,22 @@ export function AdminDashboard({
         {/* Right: Action Buttons */}
         <div className="w-[140px] flex justify-end">
           {currentView === "STAFF" && (
-            <button
+            <Button
+              variant="blue"
               onClick={() => setShowStaffForm(!showStaffForm)}
-              className="inline-flex items-center justify-center gap-2 text-sm transition-colors min-h-10 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-lg shadow-blue-600/20 font-semibold px-8 whitespace-nowrap active:translate-y-[1px]"
+              className="shadow-lg shadow-blue-600/20 px-8"
             >
               {showStaffForm ? "Cancel" : "+ Add Staff"}
-            </button>
+            </Button>
           )}
           {currentView === "SERVICES" && (
-            <button
+            <Button
+              variant="blue"
               onClick={() => setShowCategoryForm(!showCategoryForm)}
-              className="inline-flex items-center justify-center gap-2 text-sm transition-colors min-h-10 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-lg shadow-blue-600/20 font-semibold px-6 whitespace-nowrap active:translate-y-[1px]"
+              className="shadow-lg shadow-blue-600/20"
             >
               {showCategoryForm ? "Cancel" : "+ Add Category"}
-            </button>
+            </Button>
           )}
         </div>
       </div>
