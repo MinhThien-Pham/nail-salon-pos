@@ -269,14 +269,9 @@ export function CheckoutView({ onClose }: CheckoutViewProps) {
                                         onClick={() => handleLoadSplit(split)}
                                         className="w-full p-4 rounded-xl border-2 border-slate-200 hover:border-blue-300 hover:bg-blue-50 transition text-left group"
                                     >
-                                        <div className="flex items-start justify-between mb-2">
-                                            <div>
-                                                <div className="font-semibold text-slate-800 text-sm">
-                                                    {split.items.length} Tech{split.items.length !== 1 ? 's' : ''}
-                                                </div>
-                                                <div className="text-xs text-slate-500 mt-0.5">
-                                                    {new Date(split.createdAt).toLocaleTimeString()}
-                                                </div>
+                                        <div className="flex items-start justify-between mb-3">
+                                            <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                                                {new Date(split.createdAt).toLocaleTimeString()}
                                             </div>
                                             <button
                                                 onClick={(e) => handleDeleteSplit(split.splitId, e)}
@@ -285,8 +280,31 @@ export function CheckoutView({ onClose }: CheckoutViewProps) {
                                                 <X className="h-4 w-4" />
                                             </button>
                                         </div>
-                                        <div className="text-right font-bold text-lg text-blue-600">
-                                            ${(split.totalCents / 100).toFixed(2)}
+
+                                        <div className="space-y-2 mb-4">
+                                            {split.items.map((item, idx) => (
+                                                <div key={idx} className="bg-slate-50/50 rounded-lg p-2.5 border border-slate-100">
+                                                    <div className="flex justify-between items-start mb-1">
+                                                        <div className="font-bold text-slate-800 text-sm">{item.techName}</div>
+                                                        <div className="font-mono text-xs font-semibold text-slate-600">
+                                                            ${((item.manualAmount || item.services.reduce((sum, s) => sum + s.priceCents, 0)) / 100).toFixed(2)}
+                                                        </div>
+                                                    </div>
+                                                    <div className="text-xs text-slate-500 leading-relaxed">
+                                                        {item.manualAmount
+                                                            ? "Manual Amount"
+                                                            : item.services.map(s => s.name).join(', ')
+                                                        }
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+
+                                        <div className="flex justify-between items-center border-t border-slate-100 pt-3">
+                                            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Total</span>
+                                            <span className="text-lg font-bold text-blue-600">
+                                                ${(split.totalCents / 100).toFixed(2)}
+                                            </span>
                                         </div>
                                     </button>
                                 ))}
@@ -550,16 +568,19 @@ export function CheckoutView({ onClose }: CheckoutViewProps) {
                                                                     e.stopPropagation();
                                                                     handleRemoveService(item.techId, svc.serviceId);
                                                                 }}
-                                                                className="opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-700 transition"
+                                                                className="text-slate-400 hover:text-red-500 transition p-1"
                                                             >
                                                                 <X className="h-3 w-3" />
                                                             </button>
                                                         </div>
                                                     </div>
                                                 ))}
-                                                <div className="border-t border-slate-300 mt-2 pt-2 flex justify-between font-semibold">
+                                                <div className="border-t border-slate-300 mt-2 pt-2 flex justify-between items-center font-semibold">
                                                     <span className="text-slate-700">Subtotal</span>
-                                                    <span className="text-slate-800">${(techTotal / 100).toFixed(2)}</span>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-slate-800">${(techTotal / 100).toFixed(2)}</span>
+                                                        <div className="w-5" />
+                                                    </div>
                                                 </div>
                                             </div>
                                         ) : null}

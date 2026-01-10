@@ -290,9 +290,9 @@ export function PaymentView({ subtotal, onClose }: PaymentViewProps) {
                                     <div>
                                         <label className="block text-xs font-medium text-slate-600 mb-1">Tier</label>
                                         <div className={`px-3 py-2 rounded-lg text-sm font-bold text-center ${foundCustomer.tier === 'PLATINUM' ? 'bg-purple-100 text-purple-700' :
-                                                foundCustomer.tier === 'GOLD' ? 'bg-yellow-100 text-yellow-700' :
-                                                    foundCustomer.tier === 'SILVER' ? 'bg-gray-100 text-gray-700' :
-                                                        'bg-orange-100 text-orange-700'
+                                            foundCustomer.tier === 'GOLD' ? 'bg-yellow-100 text-yellow-700' :
+                                                foundCustomer.tier === 'SILVER' ? 'bg-gray-100 text-gray-700' :
+                                                    'bg-orange-100 text-orange-700'
                                             }`}>
                                             {foundCustomer.tier}
                                         </div>
@@ -414,72 +414,90 @@ export function PaymentView({ subtotal, onClose }: PaymentViewProps) {
                     {/* Breakdown */}
                     <div className="flex-1 overflow-auto p-6 space-y-3">
                         {/* Sub-total - All amounts align at w-[120px] container */}
-                        <div className="flex items-center">
-                            <span className="flex-1 text-slate-700">Sub-total</span>
-                            <span className="font-semibold text-slate-900 text-right w-[100px]">${(subtotal / 100).toFixed(2)}</span>
+                        <div className="flex items-center justify-between">
+                            <span className="text-slate-700">Sub-total</span>
+                            <div className="flex items-center gap-2">
+                                <span className="font-semibold text-slate-900 text-right">${(subtotal / 100).toFixed(2)}</span>
+                                <span className="w-6"></span> {/* Spacer for alignment */}
+                            </div>
                         </div>
 
                         {/* Promo (only if exists) */}
                         {promo > 0 && (
-                            <div className="flex items-center text-green-600">
-                                <span className="flex-1">Promo</span>
-                                <span className="font-semibold text-right w-[100px]">-${(promo / 100).toFixed(2)}</span>
-                                <button
-                                    onClick={() => {/* TODO: Clear promo */ }}
-                                    className="ml-2 text-red-500 hover:text-red-700 transition"
-                                >
-                                    <X className="h-4 w-4" />
-                                </button>
+                            <div className="flex items-center justify-between text-green-600">
+                                <span>Promo</span>
+                                <div className="flex items-center gap-2">
+                                    <span className="font-semibold text-right">-${(promo / 100).toFixed(2)}</span>
+                                    <button
+                                        onClick={() => {/* TODO: Clear promo */ }}
+                                        className="text-slate-400 hover:text-red-500 transition p-1"
+                                    >
+                                        <X className="h-4 w-4" />
+                                    </button>
+                                </div>
                             </div>
                         )}
 
                         {/* Reward (only if exists) */}
                         {reward > 0 && (
-                            <div className="flex items-center text-green-600">
-                                <span className="flex-1">Reward</span>
-                                <span className="font-semibold text-right w-[100px]">-${(reward / 100).toFixed(2)}</span>
-                                <button
-                                    onClick={() => {/* TODO: Clear reward */ }}
-                                    className="ml-2 text-red-500 hover:text-red-700 transition"
-                                >
-                                    <X className="h-4 w-4" />
-                                </button>
+                            <div className="flex items-center justify-between text-green-600">
+                                <span>Reward</span>
+                                <div className="flex items-center gap-2">
+                                    <span className="font-semibold text-right">-${(reward / 100).toFixed(2)}</span>
+                                    <button
+                                        onClick={() => {/* TODO: Clear reward */ }}
+                                        className="text-slate-400 hover:text-red-500 transition p-1"
+                                    >
+                                        <X className="h-4 w-4" />
+                                    </button>
+                                </div>
                             </div>
                         )}
 
                         {/* Discount (only if exists) */}
                         {discount > 0 && (
-                            <div className="flex items-center text-green-600">
-                                <span className="flex-1">Discount</span>
-                                <span className="font-semibold text-right w-[100px]">-${(discount / 100).toFixed(2)}</span>
-                                <button
-                                    onClick={() => setDiscount(0)}
-                                    className="ml-2 text-red-500 hover:text-red-700 transition"
-                                >
-                                    <X className="h-4 w-4" />
-                                </button>
+                            <div className="flex items-center justify-between text-green-600">
+                                <span>Discount</span>
+                                <div className="flex items-center gap-2">
+                                    <span className="font-semibold text-right">-${(discount / 100).toFixed(2)}</span>
+                                    <button
+                                        onClick={() => setDiscount(0)}
+                                        className="text-slate-400 hover:text-red-500 transition p-1"
+                                    >
+                                        <X className="h-4 w-4" />
+                                    </button>
+                                </div>
                             </div>
                         )}
 
                         {/* Total (before cash discount) */}
-                        <div className="border-t border-slate-300 pt-3 flex items-center">
-                            <span className="flex-1 text-lg font-semibold text-slate-800">Total</span>
-                            <span className="text-2xl font-bold text-slate-900 text-right w-[100px]">${(totalBeforeCashDiscount / 100).toFixed(2)}</span>
+                        <div className="border-t border-slate-300 pt-3 flex items-center justify-between">
+                            <span className="text-lg font-semibold text-slate-800">Total</span>
+                            <div className="flex items-center gap-2">
+                                <span className="text-2xl font-bold text-slate-900 text-right">${(totalBeforeCashDiscount / 100).toFixed(2)}</span>
+                                <span className="w-6"></span>
+                            </div>
                         </div>
 
                         {/* Cash Discount (only if all cash and payment complete) */}
                         {cashDiscount > 0 && (
-                            <div className="flex items-center text-green-600">
-                                <span className="flex-1">Cash Discount (10%)</span>
-                                <span className="font-semibold text-right w-[100px]">-${(cashDiscount / 100).toFixed(2)}</span>
+                            <div className="flex items-center justify-between text-green-600">
+                                <span>Cash Discount (10%)</span>
+                                <div className="flex items-center gap-2">
+                                    <span className="font-semibold text-right">-${(cashDiscount / 100).toFixed(2)}</span>
+                                    <span className="w-6"></span>
+                                </div>
                             </div>
                         )}
 
                         {/* Cash Total (only if cash discount applied) */}
                         {cashDiscount > 0 && (
-                            <div className="border-t border-slate-300 pt-3 flex items-center">
-                                <span className="flex-1 text-lg font-semibold text-green-800">Cash Total</span>
-                                <span className="text-2xl font-bold text-green-900 text-right w-[100px]">${(total / 100).toFixed(2)}</span>
+                            <div className="border-t border-slate-300 pt-3 flex items-center justify-between">
+                                <span className="text-lg font-semibold text-green-800">Cash Total</span>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-2xl font-bold text-green-900 text-right">${(total / 100).toFixed(2)}</span>
+                                    <span className="w-6"></span>
+                                </div>
                             </div>
                         )}
 
@@ -488,28 +506,33 @@ export function PaymentView({ subtotal, onClose }: PaymentViewProps) {
                             <div className="space-y-2 pt-3 border-t border-slate-200">
                                 <div className="text-sm font-semibold text-slate-600 uppercase tracking-wider">Payments</div>
                                 {payments.map((payment, index) => (
-                                    <div key={index} className="flex items-center">
-                                        <span className="flex-1 text-slate-700">{getMethodLabel(payment.method)}</span>
-                                        <span className="font-semibold text-slate-900 text-right w-[100px]">
-                                            -${(payment.amount / 100).toFixed(2)}
-                                        </span>
-                                        <button
-                                            onClick={() => removePayment(payment.method)}
-                                            className="ml-2 text-red-500 hover:text-red-700 transition"
-                                        >
-                                            <X className="h-4 w-4" />
-                                        </button>
+                                    <div key={index} className="flex items-center justify-between">
+                                        <span className="text-slate-700">{getMethodLabel(payment.method)}</span>
+                                        <div className="flex items-center gap-2">
+                                            <span className="font-semibold text-slate-900 text-right">
+                                                -${(payment.amount / 100).toFixed(2)}
+                                            </span>
+                                            <button
+                                                onClick={() => removePayment(payment.method)}
+                                                className="text-slate-400 hover:text-red-500 transition p-1"
+                                            >
+                                                <X className="h-4 w-4" />
+                                            </button>
+                                        </div>
                                     </div>
                                 ))}
                             </div>
                         )}
 
                         {/* Remaining / Change */}
-                        <div className="border-t border-slate-300 pt-3 flex items-center">
-                            <span className="flex-1 text-lg font-semibold text-slate-800">{isChange ? 'Change' : 'Remaining'}</span>
-                            <span className={`text-2xl font-bold text-right w-[100px] ${remaining > 0 ? 'text-red-600' : 'text-green-600'}`}>
-                                ${Math.abs(remaining / 100).toFixed(2)}
-                            </span>
+                        <div className="border-t border-slate-300 pt-3 flex items-center justify-between">
+                            <span className="text-lg font-semibold text-slate-800">{isChange ? 'Change' : 'Remaining'}</span>
+                            <div className="flex items-center gap-2">
+                                <span className={`text-2xl font-bold text-right ${remaining > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                                    ${Math.abs(remaining / 100).toFixed(2)}
+                                </span>
+                                <span className="w-6"></span>
+                            </div>
                         </div>
                     </div>
 
@@ -589,9 +612,9 @@ export function PaymentView({ subtotal, onClose }: PaymentViewProps) {
                                 <div className="text-center p-3 bg-slate-50 rounded-lg">
                                     <div className="text-xs text-slate-500 uppercase font-semibold mb-1">Tier</div>
                                     <div className={`text-lg font-bold ${foundCustomer.tier === 'PLATINUM' ? 'text-purple-600' :
-                                            foundCustomer.tier === 'GOLD' ? 'text-yellow-600' :
-                                                foundCustomer.tier === 'SILVER' ? 'text-gray-600' :
-                                                    'text-orange-600'
+                                        foundCustomer.tier === 'GOLD' ? 'text-yellow-600' :
+                                            foundCustomer.tier === 'SILVER' ? 'text-gray-600' :
+                                                'text-orange-600'
                                         }`}>{foundCustomer.tier}</div>
                                 </div>
                                 <div className="text-center p-3 bg-slate-50 rounded-lg">

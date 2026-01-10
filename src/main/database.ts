@@ -907,7 +907,7 @@ export class AppDatabase {
     // ========================================
 
     getAllCheckoutSplits(): CheckoutSplit[] {
-        const rows = this.db.prepare('SELECT * FROM checkout_splits ORDER BY createdAt DESC').all();
+        const rows = this.db.prepare('SELECT * FROM checkout_splits ORDER BY createdAt ASC').all();
         return rows.map(row => this.mapRowToCheckoutSplit(row));
     }
 
