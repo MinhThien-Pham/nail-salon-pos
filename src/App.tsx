@@ -9,8 +9,9 @@ import { ClockOutView } from "./views/ClockOut/ClockOutView";
 import { GiftCardView } from "./views/GiftCard/GiftCardView";
 import { ReceiptView } from "./views/Receipt/ReceiptView";
 import { CalendarView } from "./views/Calendar/CalendarView";
+import { CustomerView } from "./views/Customer/CustomerView";
 
-type RouteView = "QUEUE" | "CALENDAR" | "GIFT" | "ADMIN" | "CLOCKIN" | "CLOCKOUT" | "RECEIPT";
+type RouteView = "QUEUE" | "CALENDAR" | "GIFT" | "ADMIN" | "CLOCKIN" | "CLOCKOUT" | "RECEIPT" | "CUSTOMER";
 type QueueTab = "LIST" | "BOXES";
 
 export default function App() {
@@ -64,7 +65,9 @@ export default function App() {
               ? "Clock-Out"
               : route === "ADMIN"
                 ? "Settings"
-                : "Owner Dashboard";
+                : route === "CUSTOMER"
+                  ? "Customers"
+                  : "Owner Dashboard";
 
   return (
     <div className="h-screen w-screen bg-slate-50 flex overflow-hidden">
@@ -110,6 +113,11 @@ export default function App() {
           // Receipt view - full screen without wrapper
           <div className="h-full">
             <ReceiptView />
+          </div>
+        ) : route === "CUSTOMER" ? (
+          // Customer view - full screen without wrapper
+          <div className="h-full">
+            <CustomerView onClose={() => setRoute("QUEUE")} />
           </div>
         ) : (
           // Calendar view - full screen without wrapper

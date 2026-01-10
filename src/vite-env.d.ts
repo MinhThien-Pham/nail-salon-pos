@@ -1,5 +1,5 @@
 /// <reference types="vite/client" />
-import { Staff, Settings, QueueEntry, ServiceType, Service } from "./shared/types";
+import { Staff, Settings, QueueEntry, ServiceType, Service, Customer, CheckoutSplit, CheckoutSplitItem } from "./shared/types";
 
 // Because this file has an 'import', we must use 'declare global' 
 // to make these variables visible to main.ts
@@ -55,4 +55,19 @@ export interface IElectronAPI {
   removeTechFromQueue: (staffId: number) => Promise<QueueEntry[]>;
   updateTechStatus: (staffId: number, status: string) => Promise<QueueEntry[]>;
   bulkAddTechsToQueue: (staffIds: number[]) => Promise<QueueEntry[]>;
+  getBusyTechs: () => Promise<QueueEntry[]>;
+  // Customers
+  getAllCustomers: () => Promise<Customer[]>;
+  searchCustomers: (query: string) => Promise<Customer[]>;
+  getCustomerById: (id: number) => Promise<Customer | undefined>;
+  getCustomerByPhone: (phone: string) => Promise<Customer | undefined>;
+  createCustomer: (data: any) => Promise<number>;
+  updateCustomer: (id: number, data: any) => Promise<void>;
+  deleteCustomer: (id: number) => Promise<void>;
+  // Checkout Splits
+  getAllCheckoutSplits: () => Promise<CheckoutSplit[]>;
+  getCheckoutSplitById: (id: number) => Promise<CheckoutSplit | null>;
+  createCheckoutSplit: (items: CheckoutSplitItem[], totalCents: number) => Promise<number>;
+  deleteCheckoutSplit: (id: number) => Promise<void>;
+  deleteAllCheckoutSplits: () => Promise<void>;
 }

@@ -108,6 +108,7 @@ export function ClockInView() {
     const handleReset = async () => {
         try {
             await window.api.resetQueue();
+            await window.api.deleteAllCheckoutSplits();
             setSelectedTechs([]);
             setOriginalQueueOrder([]);
             setShowResetConfirm(false);

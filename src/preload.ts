@@ -46,6 +46,21 @@ const api = {
     removeTechFromQueue: (staffId: number) => ipcRenderer.invoke('queue:remove-tech', staffId),
     updateTechStatus: (staffId: number, status: string) => ipcRenderer.invoke('queue:update-status', { staffId, status }),
     bulkAddTechsToQueue: (staffIds: number[]) => ipcRenderer.invoke('queue:bulk-add', staffIds),
+    getBusyTechs: () => ipcRenderer.invoke('queue:get-busy-techs'),
+    // Customers
+    getAllCustomers: () => ipcRenderer.invoke('customers:get-all'),
+    searchCustomers: (query: string) => ipcRenderer.invoke('customers:search', query),
+    getCustomerById: (id: number) => ipcRenderer.invoke('customers:get-by-id', id),
+    getCustomerByPhone: (phone: string) => ipcRenderer.invoke('customers:get-by-phone', phone),
+    createCustomer: (data: any) => ipcRenderer.invoke('customers:create', data),
+    updateCustomer: (id: number, data: any) => ipcRenderer.invoke('customers:update', { id, data }),
+    deleteCustomer: (id: number) => ipcRenderer.invoke('customers:delete', id),
+    // Checkout Splits
+    getAllCheckoutSplits: () => ipcRenderer.invoke('splits:get-all'),
+    getCheckoutSplitById: (id: number) => ipcRenderer.invoke('splits:get-by-id', id),
+    createCheckoutSplit: (items: any[], totalCents: number) => ipcRenderer.invoke('splits:create', { items, totalCents }),
+    deleteCheckoutSplit: (id: number) => ipcRenderer.invoke('splits:delete', id),
+    deleteAllCheckoutSplits: () => ipcRenderer.invoke('splits:delete-all'),
 };
 
 contextBridge.exposeInMainWorld('api', api);

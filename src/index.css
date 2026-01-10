@@ -3,11 +3,15 @@
 @tailwind utilities;
 
 :root {
-  --bg: #f8fafc;         /* slate-50 */
+  --bg: #f8fafc;
+  /* slate-50 */
   --panel: #ffffff;
-  --border: #e2e8f0;     /* slate-200 */
-  --muted: #64748b;      /* slate-500 */
-  --text: #0f172a;       /* slate-900 */
+  --border: #e2e8f0;
+  /* slate-200 */
+  --muted: #64748b;
+  /* slate-500 */
+  --text: #0f172a;
+  /* slate-900 */
 
   --blue: #2563eb;
   --blue-weak: rgba(37, 99, 235, 0.10);
@@ -18,7 +22,9 @@
   --shadow: 0 18px 60px rgba(2, 6, 23, 0.12);
 }
 
-html, body, #root {
+html,
+body,
+#root {
   height: 100%;
 }
 
@@ -30,7 +36,9 @@ body {
 }
 
 /* Default form look (helps your Admin forms a lot) */
-input, select, textarea {
+input,
+select,
+textarea {
   font: inherit;
   color: var(--text);
   background: #fff;
@@ -40,7 +48,9 @@ input, select, textarea {
   outline: none;
 }
 
-input:focus, select:focus, textarea:focus {
+input:focus,
+select:focus,
+textarea:focus {
   border-color: rgba(37, 99, 235, 0.45);
   box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
 }
@@ -51,8 +61,10 @@ button {
   border: 0;
   border-radius: 12px;
   padding: 10px 14px;
-  background: transparent; /* IMPORTANT: don't force blue */
-  color: inherit;          /* IMPORTANT: don't force white */
+  background: transparent;
+  /* IMPORTANT: don't force blue */
+  color: inherit;
+  /* IMPORTANT: don't force white */
   cursor: pointer;
   transition: transform 0.06s ease, filter 0.15s ease, background 0.15s ease;
 }

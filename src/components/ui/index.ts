@@ -16,3 +16,13 @@ export type { BadgeProps } from './Badge';
 
 export { ExpandCollapseIcon } from './ExpandCollapseIcon';
 export type { ExpandCollapseIconProps } from './ExpandCollapseIcon';
+
+export { NumberPad } from './NumberPad';
+export type { NumberPadProps } from './NumberPad';
+
+export { DiscountModal } from './DiscountModal';
+export type { DiscountModalProps, DiscountType } from './DiscountModal';
+
+export { QuickAmountButtons } from './QuickAmountButtons';
+export type { QuickAmountButtonsProps } from './QuickAmountButtons';
+

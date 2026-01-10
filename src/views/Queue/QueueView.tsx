@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { QueueEntry, ServiceType } from "../../shared/types";
 import { DollarSign } from "lucide-react";
 import { Button } from "../../components/ui";
+import { CheckoutView } from "../Checkout/CheckoutView";
 
 interface QueueViewProps {
     queueTab: "LIST" | "BOXES";
@@ -14,6 +15,8 @@ export function QueueView({ queueTab }: QueueViewProps) {
     const [selectedFilter, setSelectedFilter] = useState<number | null>(null); // null = All
     const [longPressTarget, setLongPressTarget] = useState<number | null>(null);
     const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null);
+    const [showCheckout, setShowCheckout] = useState(false);
+
 
     // Load initial data
     useEffect(() => {
@@ -138,7 +141,11 @@ export function QueueView({ queueTab }: QueueViewProps) {
 
                     {/* Right: Checkout Button */}
                     <div className="w-[140px] flex justify-end">
-                        <Button variant="blue" className="gap-2 shadow-lg shadow-blue-600/20">
+                        <Button
+                            variant="blue"
+                            className="gap-2 shadow-lg shadow-blue-600/20"
+                            onClick={() => setShowCheckout(true)}
+                        >
                             <DollarSign className="w-4 h-4" /> Checkout
                         </Button>
                     </div>
@@ -180,10 +187,14 @@ export function QueueView({ queueTab }: QueueViewProps) {
                                 // Alternate background for rows based on index
                                 const rowBg = index % 2 === 0 ? "bg-white" : "bg-blue-50/30";
 
+                                // Gray out entire row when busy/serving
+                                const isBusy = entry.status === "SERVING";
+                                const rowStyle = isBusy ? "grayscale opacity-50" : "";
+
                                 return (
                                     <div
                                         key={entry.staffId}
-                                        className={`grid grid-cols-12 gap-4 px-8 py-5 items-center border-b border-slate-100 last:border-0 transition-colors ${rowBg}`}
+                                        className={`grid grid-cols-12 gap-4 px-8 py-5 items-center border-b border-slate-100 last:border-0 transition-all ${rowBg} ${rowStyle}`}
                                     >
                                         {/* Order */}
                                         <div className="col-span-1 text-center font-medium text-slate-400">
@@ -233,18 +244,18 @@ export function QueueView({ queueTab }: QueueViewProps) {
                                                     Start
                                                 </Button>
                                             ) : (
-                                                <button
-                                                    type="button"
+                                                <Button
+                                                    variant="slate"
+                                                    size="md"
                                                     onMouseDown={() => handleMouseDown(entry.staffId)}
                                                     onMouseUp={handleMouseUp}
                                                     onMouseLeave={handleMouseUp}
-                                                    onTouchStart={() => handleMouseDown(entry.staffId)}
-                                                    onTouchEnd={handleMouseUp}
-                                                    className="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm transition-colors min-h-9 py-2 rounded-lg font-semibold px-6 bg-slate-300 text-slate-500 cursor-not-allowed opacity-60"
-                                                    title="Long press to revert to idle"
+                                                    className="min-h-9 py-2 px-6 cursor-not-allowed"
+                                                    disabled
+                                                    title="Tech is currently serving (Long press to revert to idle)"
                                                 >
-                                                    Busy
-                                                </button>
+                                                    Start
+                                                </Button>
                                             )}
                                         </div>
                                     </div>
@@ -276,6 +287,11 @@ export function QueueView({ queueTab }: QueueViewProps) {
                         </div>
                     </div>
                 </div>
+            )}
+
+            {/* Checkout Modal */}
+            {showCheckout && (
+                <CheckoutView onClose={() => setShowCheckout(false)} />
             )}
         </>
     );

@@ -49,4 +49,19 @@ export default function setUpHandlers(db: AppDatabase) {
     ipcMain.handle('queue:remove-tech', (_, staffId) => db.removeTechFromQueue(staffId));
     ipcMain.handle('queue:update-status', (_, { staffId, status }) => db.updateTechStatus(staffId, status));
     ipcMain.handle('queue:bulk-add', (_, staffIds) => db.bulkAddTechsToQueue(staffIds));
+    ipcMain.handle('queue:get-busy-techs', () => db.getBusyTechs());
+    // 8. Customers
+    ipcMain.handle('customers:get-all', () => db.getAllCustomers());
+    ipcMain.handle('customers:search', (_, query) => db.searchCustomers(query));
+    ipcMain.handle('customers:get-by-id', (_, id) => db.getCustomerById(id));
+    ipcMain.handle('customers:get-by-phone', (_, phone) => db.getCustomerByPhone(phone));
+    ipcMain.handle('customers:create', (_, data) => db.createCustomer(data));
+    ipcMain.handle('customers:update', (_, { id, data }) => db.updateCustomer(id, data));
+    ipcMain.handle('customers:delete', (_, id) => db.deleteCustomer(id));
+    // 9. Checkout Splits
+    ipcMain.handle('splits:get-all', () => db.getAllCheckoutSplits());
+    ipcMain.handle('splits:get-by-id', (_, id) => db.getCheckoutSplitById(id));
+    ipcMain.handle('splits:create', (_, { items, totalCents }) => db.createCheckoutSplit(items, totalCents));
+    ipcMain.handle('splits:delete', (_, id) => db.deleteCheckoutSplit(id));
+    ipcMain.handle('splits:delete-all', () => db.deleteAllCheckoutSplits());
 }

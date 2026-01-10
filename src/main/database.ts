@@ -2,7 +2,7 @@
 import Database from 'better-sqlite3';
 import { app } from 'electron';
 import path from 'path';
-import { Settings, Staff, Promo, Reward, ServiceType, Service, QueueEntry, TechStatus } from '../shared/types';
+import { Settings, Staff, Promo, Reward, ServiceType, Service, QueueEntry, TechStatus, Customer, CheckoutSplit, CheckoutSplitItem } from '../shared/types';
 
 const todayISO = new Date().toISOString().split('T')[0];
 
@@ -129,12 +129,43 @@ export class AppDatabase {
             );
         `);
 
+        // 8. Customers Table - Drop and recreate to ensure proper schema
+        this.db.exec(`DROP TABLE IF EXISTS customers`);
+        this.db.exec(`
+            CREATE TABLE customers (
+                customerId INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT,
+                phoneNumber TEXT UNIQUE NOT NULL,
+                dateOfBirthISO TEXT,
+                email TEXT UNIQUE,
+                tier TEXT DEFAULT 'BRONZE',
+                stage TEXT DEFAULT 'NEW',
+                loyaltyPoints INTEGER DEFAULT 0,
+                firstVisitISO TEXT,
+                lastVisitISO TEXT,
+                totalSpendCents INTEGER DEFAULT 0,
+                totalVisits INTEGER DEFAULT 0,
+                createdAt INTEGER NOT NULL,
+                updatedAt INTEGER NOT NULL
+            )
+        `);
+
+        // 9. Checkout Splits Table (Draft Checkouts)
+        this.db.exec(`
+            CREATE TABLE IF NOT EXISTS checkout_splits (
+                splitId INTEGER PRIMARY KEY AUTOINCREMENT,
+                itemsJSON TEXT NOT NULL,
+                totalCents INTEGER NOT NULL,
+                createdAt INTEGER NOT NULL
+            )
+        `);
+
         // Initialize Queue State row if not exists
         const queueRow = this.db.prepare('SELECT * FROM queue_state WHERE id = 1').get();
         if (!queueRow) {
             this.db.prepare(`
-                INSERT INTO queue_state (id, queueData, updatedAt)
-                VALUES (1, '[]', ?)
+                INSERT INTO queue_state(id, queueData, updatedAt)
+        VALUES(1, '[]', ?)
             `).run(Date.now());
         }
 
@@ -152,11 +183,11 @@ export class AppDatabase {
               AND recurEveryDays = 0 
               AND triggerType = 'MANUAL' 
               AND endISO < ?
-        `);
+            `);
 
         const info = stmt.run(today);
         if (info.changes > 0) {
-            console.log(`[Startup] Auto-Archived ${info.changes} expired promotions.`);
+            console.log(`[Startup] Auto - Archived ${info.changes} expired promotions.`);
         }
     }
 
@@ -166,40 +197,40 @@ export class AppDatabase {
         if (!settings) {
             const defaultLoyalty = JSON.stringify({ mode: "PER_DOLLAR", pointsPerDollarSpent: 1 });
             this.db.prepare(`
-                INSERT INTO settings (id, defaultCommissionTechRate, defaultPayoutCheckRate, periodDays, periodStartDate, loyaltyEarnConfig)
-                VALUES (1, 0.6, 0.7, 14, ?, ?)
+                INSERT INTO settings(id, defaultCommissionTechRate, defaultPayoutCheckRate, periodDays, periodStartDate, loyaltyEarnConfig)
+        VALUES(1, 0.6, 0.7, 14, ?, ?)
             `).run(todayISO, defaultLoyalty);
         }
 
         // B. Seed "Immortal" Promos (ID 1 & 2)
         this.db.prepare(`
-            INSERT OR IGNORE INTO promos (
-                promoId, name, isActive, triggerType, customerDateKey, 
-                recurEveryDays, windowDaysBefore, windowDaysAfter, 
+            INSERT OR IGNORE INTO promos(
+                promoId, name, isActive, triggerType, customerDateKey,
+                recurEveryDays, windowDaysBefore, windowDaysAfter,
                 rewardType, rewardValue, usageLimitPerCustomer
             )
-            VALUES 
+        VALUES
             (1, 'Birthday Special', 0, 'CUSTOMER_DATE_DRIVEN', 'dateOfBirthISO', 365, 7, 7, 'PERCENT', 15, 1),
             (2, 'Customer Anniversary', 0, 'CUSTOMER_DATE_DRIVEN', 'stats.firstVisitISO', 365, 7, 7, 'CREDIT', 1000, 1)
-        `).run();
+                `).run();
 
         // C. Seed "We Miss You" (ID 3)
         this.db.prepare(`
-            INSERT OR IGNORE INTO promos (
-                promoId, name, isActive, triggerType, 
-                startISO, endISO,
-                recurEveryDays, usageLimitPerCustomer, 
-                rewardType, rewardValue, minServiceCents, couponCode,
-                audienceStages
-            )
-            VALUES (
-                3, 'We Miss You - $15 Off', 0, 'MANUAL',
+            INSERT OR IGNORE INTO promos(
+                    promoId, name, isActive, triggerType,
+                    startISO, endISO,
+                    recurEveryDays, usageLimitPerCustomer,
+                    rewardType, rewardValue, minServiceCents, couponCode,
+                    audienceStages
+                )
+        VALUES(
+            3, 'We Miss You - $15 Off', 0, 'MANUAL',
                 ?, ?,
-                0, 1,
-                'CREDIT', 1500, 4000, 'COMEBACK20',
+            0, 1,
+            'CREDIT', 1500, 4000, 'COMEBACK20',
                 ?
-            )
-        `).run(
+        )
+            `).run(
             todayISO,
             nextYearISO,
             JSON.stringify(["AT_RISK"])
@@ -209,8 +240,8 @@ export class AppDatabase {
         const redemption = this.db.prepare('SELECT * FROM redemptions WHERE name = ?').get('The Mini Treat ($5 Off)');
         if (!redemption) {
             this.db.prepare(`
-                INSERT INTO redemptions (isActive, name, audience, redeemPointsCost, rewardConfig)
-                VALUES (0, ?, ?, ?, ?)
+                INSERT INTO redemptions(isActive, name, audience, redeemPointsCost, rewardConfig)
+        VALUES(0, ?, ?, ?, ?)
             `).run(
                 'The Mini Treat ($5 Off)',
                 null,
@@ -224,8 +255,8 @@ export class AppDatabase {
         if (!owner) {
             const now = Date.now();
             this.db.prepare(`
-                INSERT INTO staff (staffId, name, roles, pin, commissionTechRate, payoutCheckRate, createdAt, updatedAt)
-                VALUES (1, 'Owner', ?, '123456', 0.0, 0.0, ?, ?)
+                INSERT INTO staff(staffId, name, roles, pin, commissionTechRate, payoutCheckRate, createdAt, updatedAt)
+        VALUES(1, 'Owner', ?, '123456', 0.0, 0.0, ?, ?)
             `).run(JSON.stringify(['OWNER', 'TECH', 'RECEPTIONIST']), now, now);
         }
     }
@@ -240,21 +271,21 @@ export class AppDatabase {
 
     createPromo(data: Promo): number {
         const stmt = this.db.prepare(`
-            INSERT INTO promos (
-                name, isActive, triggerType, customerDateKey, 
+            INSERT INTO promos(
+                name, isActive, triggerType, customerDateKey,
                 startISO, endISO, windowDaysBefore, windowDaysAfter,
-                recurEveryDays, usageLimitPerCustomer, 
+                recurEveryDays, usageLimitPerCustomer,
                 rewardType, rewardValue, minServiceCents, couponCode,
                 audienceTiers, audienceStages
             )
-            VALUES (
-                @name, @isActive, @triggerType, @customerDateKey,
-                @startISO, @endISO, @windowDaysBefore, @windowDaysAfter,
-                @recurEveryDays, @usageLimitPerCustomer,
-                @rewardType, @rewardValue, @minServiceCents, @couponCode,
-                @audienceTiers, @audienceStages
-            )
-        `);
+        VALUES(
+            @name, @isActive, @triggerType, @customerDateKey,
+            @startISO, @endISO, @windowDaysBefore, @windowDaysAfter,
+            @recurEveryDays, @usageLimitPerCustomer,
+            @rewardType, @rewardValue, @minServiceCents, @couponCode,
+            @audienceTiers, @audienceStages
+        )
+            `);
 
         const rewardType = data.reward.type;
         const rewardValue = data.reward.type === 'CREDIT' ? data.reward.creditCents : data.reward.percentOffService;
@@ -288,12 +319,12 @@ export class AppDatabase {
 
             const stmt = this.db.prepare(`
                 UPDATE promos 
-                SET name = ?, isActive = ?, 
-                    rewardType = ?, rewardValue = ?, 
-                    windowDaysBefore = ?, windowDaysAfter = ?, 
-                    minServiceCents = ?
+                SET name = ?, isActive = ?,
+            rewardType = ?, rewardValue = ?,
+            windowDaysBefore = ?, windowDaysAfter = ?,
+            minServiceCents = ?
                 WHERE promoId = ?
-            `);
+                    `);
 
             return stmt.run(
                 data.name,
@@ -308,14 +339,14 @@ export class AppDatabase {
         }
 
         const stmt = this.db.prepare(`
-            UPDATE promos SET 
-                name = @name, isActive = @isActive, triggerType = @triggerType,
-                startISO = @startISO, endISO = @endISO,
-                recurEveryDays = @recurEveryDays, usageLimitPerCustomer = @usageLimitPerCustomer,
-                rewardType = @rewardType, rewardValue = @rewardValue, minServiceCents = @minServiceCents,
-                couponCode = @couponCode, audienceTiers = @audienceTiers, audienceStages = @audienceStages
+            UPDATE promos SET
+        name = @name, isActive = @isActive, triggerType = @triggerType,
+            startISO = @startISO, endISO = @endISO,
+            recurEveryDays = @recurEveryDays, usageLimitPerCustomer = @usageLimitPerCustomer,
+            rewardType = @rewardType, rewardValue = @rewardValue, minServiceCents = @minServiceCents,
+            couponCode = @couponCode, audienceTiers = @audienceTiers, audienceStages = @audienceStages
             WHERE promoId = @promoId
-        `);
+            `);
 
         const rewardType = data.reward.type;
         const rewardValue = data.reward.type === 'CREDIT' ? data.reward.creditCents : data.reward.percentOffService;
@@ -381,9 +412,9 @@ export class AppDatabase {
 
     createStaff(staff: any): number {
         const stmt = this.db.prepare(`
-            INSERT INTO staff (name, roles, pin, isActive, skillsTypeIds, commissionTechRate, payoutCheckRate, createdAt, updatedAt)
-            VALUES (@name, @roles, @pin, @isActive, @skillsTypeIds, @commissionTechRate, @payoutCheckRate, @createdAt, @updatedAt)
-        `);
+            INSERT INTO staff(name, roles, pin, isActive, skillsTypeIds, commissionTechRate, payoutCheckRate, createdAt, updatedAt)
+        VALUES(@name, @roles, @pin, @isActive, @skillsTypeIds, @commissionTechRate, @payoutCheckRate, @createdAt, @updatedAt)
+            `);
         return stmt.run({
             name: staff.name,
             roles: JSON.stringify(staff.roles),
@@ -399,16 +430,16 @@ export class AppDatabase {
 
     updateStaff(id: number, staff: any) {
         const stmt = this.db.prepare(`
-            UPDATE staff SET 
-                name = COALESCE(@name, name), 
-                roles = COALESCE(@roles, roles), 
-                isActive = COALESCE(@isActive, isActive), 
-                skillsTypeIds = COALESCE(@skillsTypeIds, skillsTypeIds), 
-                commissionTechRate = COALESCE(@commissionTechRate, commissionTechRate), 
-                payoutCheckRate = COALESCE(@payoutCheckRate, payoutCheckRate), 
-                updatedAt = @updatedAt 
+            UPDATE staff SET
+        name = COALESCE(@name, name),
+            roles = COALESCE(@roles, roles),
+            isActive = COALESCE(@isActive, isActive),
+            skillsTypeIds = COALESCE(@skillsTypeIds, skillsTypeIds),
+            commissionTechRate = COALESCE(@commissionTechRate, commissionTechRate),
+            payoutCheckRate = COALESCE(@payoutCheckRate, payoutCheckRate),
+            updatedAt = @updatedAt 
             WHERE staffId = @staffId
-        `);
+            `);
 
         stmt.run({
             ...staff,
@@ -438,11 +469,11 @@ export class AppDatabase {
     // --- REDEMPTIONS ---
     getAllRedemptions() { const rows = this.db.prepare('SELECT * FROM redemptions').all() as any[]; return rows.map(this.mapRowToRedemption); }
     createRedemption(r: any): number {
-        const stmt = this.db.prepare(`INSERT INTO redemptions (isActive, name, audience, redeemPointsCost, rewardConfig) VALUES (?, ?, ?, ?, ?)`);
+        const stmt = this.db.prepare(`INSERT INTO redemptions(isActive, name, audience, redeemPointsCost, rewardConfig) VALUES(?, ?, ?, ?, ?)`);
         return stmt.run(r.isActive ? 1 : 0, r.name, JSON.stringify(r.audience), r.redeemPointsCost, JSON.stringify(r.reward)).lastInsertRowid as number;
     }
     updateRedemption(id: number, r: any) {
-        const stmt = this.db.prepare(`UPDATE redemptions SET isActive = ?, name = ?, audience = ?, redeemPointsCost = ?, rewardConfig = ? WHERE redemptionId = ?`);
+        const stmt = this.db.prepare(`UPDATE redemptions SET isActive = ?, name = ?, audience = ?, redeemPointsCost = ?, rewardConfig = ? WHERE redemptionId = ? `);
         stmt.run(r.isActive ? 1 : 0, r.name, JSON.stringify(r.audience), r.redeemPointsCost, JSON.stringify(r.reward), id);
     }
     deleteRedemption(id: number) { this.db.prepare('DELETE FROM redemptions WHERE redemptionId = ?').run(id); }
@@ -507,22 +538,22 @@ export class AppDatabase {
 
     createService(s: any): number {
         const stmt = this.db.prepare(`
-            INSERT INTO services (typeId, name, priceCents, durationMin, createdAt, updatedAt)
-            VALUES (@typeId, @name, @priceCents, @durationMin, @createdAt, @updatedAt)
-        `);
+            INSERT INTO services(typeId, name, priceCents, durationMin, createdAt, updatedAt)
+        VALUES(@typeId, @name, @priceCents, @durationMin, @createdAt, @updatedAt)
+            `);
         const now = Date.now();
         return stmt.run({ ...s, createdAt: now, updatedAt: now }).lastInsertRowid as number;
     }
 
     updateService(id: number, data: any) {
         const stmt = this.db.prepare(`
-            UPDATE services SET 
-                name = @name, 
-                priceCents = @priceCents, 
-                durationMin = @durationMin, 
-                updatedAt = @updatedAt 
+            UPDATE services SET
+        name = @name,
+            priceCents = @priceCents,
+            durationMin = @durationMin,
+            updatedAt = @updatedAt 
             WHERE serviceId = @serviceId
-        `);
+            `);
         stmt.run({
             ...data,
             serviceId: id,
@@ -588,9 +619,9 @@ export class AppDatabase {
         const now = Date.now();
         this.db.prepare(`
             UPDATE queue_state 
-            SET queueData = ?, updatedAt = ? 
+            SET queueData = ?, updatedAt = ?
             WHERE id = 1
-        `).run(JSON.stringify(validated), now);
+                `).run(JSON.stringify(validated), now);
     }
 
     /**
@@ -599,9 +630,9 @@ export class AppDatabase {
     resetQueue(): void {
         this.db.prepare(`
             UPDATE queue_state 
-            SET queueData = '[]', updatedAt = ? 
+            SET queueData = '[]', updatedAt = ?
             WHERE id = 1
-        `).run(Date.now());
+                `).run(Date.now());
     }
 
     /**
@@ -689,7 +720,7 @@ export class AppDatabase {
         // Get all staff in one query
         const placeholders = staffIds.map(() => '?').join(',');
         const allStaff = this.db.prepare(
-            `SELECT * FROM staff WHERE staffId IN (${placeholders})`
+            `SELECT * FROM staff WHERE staffId IN(${placeholders})`
         ).all(...staffIds) as any[];
 
         const newEntries: QueueEntry[] = staffIds.map((staffId, idx) => {
@@ -716,5 +747,199 @@ export class AppDatabase {
 
         this.saveQueueState(newEntries);
         return this.getQueueState();
+    }
+
+    /**
+     * Get all busy (SERVING) techs currently in the queue
+     * Used for checkout to show who is actively serving customers
+     */
+    getBusyTechs(): QueueEntry[] {
+        const currentQueue = this.getQueueState();
+        return currentQueue.filter(entry => entry.status === 'SERVING');
+    }
+
+    // --- CUSTOMERS ---
+
+    /**
+     * Get all customers
+     */
+    getAllCustomers(): Customer[] {
+        const rows = this.db.prepare('SELECT * FROM customers ORDER BY name ASC').all() as any[];
+        return rows.map(this.mapRowToCustomer);
+    }
+
+    /**
+     * Search customers by name, phone, or email
+     */
+    searchCustomers(query: string): Customer[] {
+        const searchTerm = `% ${query}% `;
+        const rows = this.db.prepare(`
+        SELECT * FROM customers 
+            WHERE name LIKE ?
+            OR phoneNumber LIKE ?
+                OR email LIKE ?
+                    ORDER BY name ASC
+                        `).all(searchTerm, searchTerm, searchTerm) as any[];
+        return rows.map(this.mapRowToCustomer);
+    }
+
+    /**
+     * Get customer by ID
+     */
+    getCustomerById(customerId: number): Customer | undefined {
+        const row = this.db.prepare('SELECT * FROM customers WHERE customerId = ?').get(customerId);
+        return row ? this.mapRowToCustomer(row) : undefined;
+    }
+
+    /**
+     * Get customer by phone number
+     */
+    getCustomerByPhone(phoneNumber: string): Customer | undefined {
+        const row = this.db.prepare('SELECT * FROM customers WHERE phoneNumber = ?').get(phoneNumber);
+        return row ? this.mapRowToCustomer(row) : undefined;
+    }
+
+    /**
+     * Create new customer
+     */
+    createCustomer(data: Partial<Customer>): number {
+        const now = Date.now();
+        const stmt = this.db.prepare(`
+            INSERT INTO customers(
+                            name, phoneNumber, dateOfBirthISO, email,
+                            tier, stage, loyaltyPoints,
+                            firstVisitISO, lastVisitISO, totalSpendCents, totalVisits,
+                            createdAt, updatedAt
+                        )
+        VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `);
+
+        const info = stmt.run(
+            data.name || null,
+            data.phoneNumber,
+            data.dateOfBirthISO || null,
+            data.email || null,
+            data.tier || 'BRONZE',
+            data.stage || 'NEW',
+            data.loyaltyPoints || 0,
+            data.stats?.firstVisitISO || null,
+            data.stats?.lastVisitISO || null,
+            data.stats?.totalSpendCents || 0,
+            data.stats?.totalVisits || 0,
+            now,
+            now
+        );
+
+        return info.lastInsertRowid as number;
+    }
+
+    /**
+     * Update customer
+     */
+    updateCustomer(customerId: number, data: Partial<Customer>) {
+        const stmt = this.db.prepare(`
+            UPDATE customers SET
+        name = COALESCE(?, name),
+            phoneNumber = COALESCE(?, phoneNumber),
+            dateOfBirthISO = ?,
+            email = ?,
+            tier = COALESCE(?, tier),
+            stage = COALESCE(?, stage),
+            loyaltyPoints = COALESCE(?, loyaltyPoints),
+            firstVisitISO = ?,
+            lastVisitISO = ?,
+            totalSpendCents = COALESCE(?, totalSpendCents),
+            totalVisits = COALESCE(?, totalVisits),
+            updatedAt = ?
+                WHERE customerId = ?
+                    `);
+
+        stmt.run(
+            data.name !== undefined ? data.name : null,
+            data.phoneNumber,
+            data.dateOfBirthISO !== undefined ? data.dateOfBirthISO : null,
+            data.email !== undefined ? data.email : null,
+            data.tier,
+            data.stage,
+            data.loyaltyPoints,
+            data.stats?.firstVisitISO !== undefined ? data.stats.firstVisitISO : null,
+            data.stats?.lastVisitISO !== undefined ? data.stats.lastVisitISO : null,
+            data.stats?.totalSpendCents,
+            data.stats?.totalVisits,
+            Date.now(),
+            customerId
+        );
+    }
+
+    /**
+     * Delete customer
+     */
+    deleteCustomer(customerId: number) {
+        this.db.prepare('DELETE FROM customers WHERE customerId = ?').run(customerId);
+    }
+
+    /**
+     * Map database row to Customer type
+     */
+    private mapRowToCustomer(row: any): Customer {
+        return {
+            customerId: row.customerId,
+            name: row.name || '',
+            phoneNumber: row.phoneNumber,
+            dateOfBirthISO: row.dateOfBirthISO || undefined,
+            email: row.email || undefined,
+            tier: row.tier as any,
+            stage: row.stage as any,
+            loyaltyPoints: row.loyaltyPoints,
+            stats: {
+                firstVisitISO: row.firstVisitISO || '',
+                lastVisitISO: row.lastVisitISO || '',
+                totalSpendCents: row.totalSpendCents,
+                totalVisits: row.totalVisits
+            },
+            createdAt: row.createdAt,
+            updatedAt: row.updatedAt
+        };
+    }
+
+    // ========================================
+    // CHECKOUT SPLITS (Draft Checkouts)
+    // ========================================
+
+    getAllCheckoutSplits(): CheckoutSplit[] {
+        const rows = this.db.prepare('SELECT * FROM checkout_splits ORDER BY createdAt DESC').all();
+        return rows.map(row => this.mapRowToCheckoutSplit(row));
+    }
+
+    getCheckoutSplitById(splitId: number): CheckoutSplit | null {
+        const row = this.db.prepare('SELECT * FROM checkout_splits WHERE splitId = ?').get(splitId);
+        return row ? this.mapRowToCheckoutSplit(row) : null;
+    }
+
+    createCheckoutSplit(items: CheckoutSplitItem[], totalCents: number): number {
+        const now = Date.now();
+        const itemsJSON = JSON.stringify(items);
+        const result = this.db.prepare(`
+            INSERT INTO checkout_splits (itemsJSON, totalCents, createdAt)
+            VALUES (?, ?, ?)
+        `).run(itemsJSON, totalCents, now);
+        return result.lastInsertRowid as number;
+    }
+
+    deleteCheckoutSplit(splitId: number): void {
+        this.db.prepare('DELETE FROM checkout_splits WHERE splitId = ?').run(splitId);
+    }
+
+    deleteAllCheckoutSplits(): void {
+        this.db.prepare('DELETE FROM checkout_splits').run();
+    }
+
+    private mapRowToCheckoutSplit(row: any): CheckoutSplit {
+        return {
+            splitId: row.splitId,
+            items: JSON.parse(row.itemsJSON),
+            totalCents: row.totalCents,
+            createdAt: row.createdAt
+        };
     }
 }

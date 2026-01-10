@@ -4,18 +4,18 @@
 export type Role = "OWNER" | "RECEPTIONIST" | "TECH";
 
 export type Staff = {
-    staffId: number;
-    name: string;
-    roles: Role[];
-    pin: string;
-    isActive: boolean;
-    skillsTypeIds: number[];    // array of ServiceType IDs the staff is skilled in
-    payroll?: { 
-        commissionTechRate?: number; // default 0.6
-        payoutCheckRate?: number;    // default 0.7
-    };
-    createdAt: number;
-    updatedAt: number;
+  staffId: number;
+  name: string;
+  roles: Role[];
+  pin: string;
+  isActive: boolean;
+  skillsTypeIds: number[];    // array of ServiceType IDs the staff is skilled in
+  payroll?: {
+    commissionTechRate?: number; // default 0.6
+    payoutCheckRate?: number;    // default 0.7
+  };
+  createdAt: number;
+  updatedAt: number;
 };
 
 // -------- Loyalty earn modes (owner must choose ONE) --------
@@ -33,8 +33,8 @@ export type LoyaltyTier = 'BRONZE' | 'SILVER' | 'GOLD' | 'PLATINUM';
 export type LifecycleStage = 'NEW' | 'ACTIVE' | 'AT_RISK' | 'CHURNED';
 
 export type Audience = {
-    tiers: LoyaltyTier[] | null;
-    stages: LifecycleStage[] | null;
+  tiers: LoyaltyTier[] | null;
+  stages: LifecycleStage[] | null;
 } | null; // null means ALL customers
 
 // --- Promos (New Schema) ---
@@ -45,26 +45,26 @@ export type Promo = {
   promoId: number;
   name: string;
   isActive: boolean;
-  
+
   triggerType: TriggerType;
   customerDateKey?: string; // e.g., 'dateOfBirthISO' or 'stats.firstVisitISO'
-  
+
   // Manual Date Logic
-  startISO?: string;       
-  endISO?: string;         
-  
+  startISO?: string;
+  endISO?: string;
+
   // Dynamic Window Logic (for Special Days)
   windowDaysBefore?: number;
   windowDaysAfter?: number;
-  
+
   // Recurrence
-  recurEveryDays: number; 
-  usageLimitPerCustomer: number; 
+  recurEveryDays: number;
+  usageLimitPerCustomer: number;
 
   // Targeting & Value
-  audience: Audience; 
-  couponCode?: string; 
-  minServiceCents: number; 
+  audience: Audience;
+  couponCode?: string;
+  minServiceCents: number;
   reward: Reward;
 };
 
@@ -80,52 +80,91 @@ export type RewardRedemption = {
 
 // --- Settings ---
 export type Settings = {
-    id: number; // Always 1
+  id: number; // Always 1
 
-    // --- Payroll Settings ---
-    periodDays: number;              // default 14
-    periodStartDate: string;        // ISO date string of the start of the first payroll period
-    
-    // --- Loyalty Settings ---
-    // storing this as a JSON string in DB, but parse it for the UI
-    loyaltyEarn: LoyaltyEarn; // default: { mode: "PER_DOLLAR", pointsPerDollarSpent: 1 }
+  // --- Payroll Settings ---
+  periodDays: number;              // default 14
+  periodStartDate: string;        // ISO date string of the start of the first payroll period
 
-    // --- Rates for new staff ---
-    defaultCommissionTechRate: number; //default 0.6
-    defaultPayoutCheckRate: number;    // default 0.7
+  // --- Loyalty Settings ---
+  // storing this as a JSON string in DB, but parse it for the UI
+  loyaltyEarn: LoyaltyEarn; // default: { mode: "PER_DOLLAR", pointsPerDollarSpent: 1 }
+
+  // --- Rates for new staff ---
+  defaultCommissionTechRate: number; //default 0.6
+  defaultPayoutCheckRate: number;    // default 0.7
 };
 
 // --- SERVICES ---
 export type ServiceType = {
-    serviceTypeId: number;
-    name: string; // unique, required
-    createdAt: number;
-    updatedAt: number;
+  serviceTypeId: number;
+  name: string; // unique, required
+  createdAt: number;
+  updatedAt: number;
 };
 
 export type Service = {
-    serviceId: number;
-    typeId: number; // ServiceType.serviceTypeId
-    name: string;   // unique, required
-    priceCents: number;
-    durationMin: number;
-    createdAt: number;
-    updatedAt: number;
+  serviceId: number;
+  typeId: number; // ServiceType.serviceTypeId
+  name: string;   // unique, required
+  priceCents: number;
+  durationMin: number;
+  createdAt: number;
+  updatedAt: number;
 };
 
 // --- QUEUE SYSTEM ---
 export type TechStatus = "IDLE" | "SERVING";
 
 export type QueueEntry = {
-    staffId: number;
-    name: string;              // denormalized for rendering
-    order: number;             // 1..N position set by receptionist
-    status: TechStatus;        // only IDLE or SERVING
-    turns: number;             // starts 0, increment on checkout
-    skillsTypeIds: number[];   // denormalized service skills
+  staffId: number;
+  name: string;              // denormalized for rendering
+  order: number;             // 1..N position set by receptionist
+  status: TechStatus;        // only IDLE or SERVING
+  turns: number;             // starts 0, increment on checkout
+  skillsTypeIds: number[];   // denormalized service skills
 };
 
 export type QueueState = {
-    queueData: QueueEntry[];
-    updatedAt: number;
+  queueData: QueueEntry[];
+  updatedAt: number;
+};
+
+export type Customer = {
+  customerId: number;
+  name: string;             // Single field for simplicity
+  phoneNumber: string;      // Primary lookup key
+  dateOfBirthISO?: string;  // Anchor for "Birthday Special" (ID 1)
+  email?: string;           // Optional, for marketing
+
+  // Loyalty & Marketing Status
+  tier: LoyaltyTier;        // Logic-driven (e.g., based on total spend)
+  stage: LifecycleStage;    // Logic-driven (e.g., based on days since last visit)
+  loyaltyPoints: number;    // Current redeemable balance
+
+  // Visit Stats
+  stats: {
+    firstVisitISO: string; // Anchor for "Customer Anniversary" (ID 2)
+    lastVisitISO: string;  // Essential for calculating LifecycleStage
+    totalSpendCents: number;
+    totalVisits: number;
+  };
+
+  createdAt: number;
+  updatedAt: number;
+};
+
+// --- Checkout Splits (Draft Checkouts) ---
+export type CheckoutSplitItem = {
+  techId: number;
+  techName: string;
+  services: { serviceId: number; name: string; priceCents: number }[];
+  manualAmount?: number; // in cents, if set, services are ignored
+};
+
+export type CheckoutSplit = {
+  splitId: number;
+  items: CheckoutSplitItem[];
+  totalCents: number;
+  createdAt: number;
 };

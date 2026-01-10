@@ -1,6 +1,6 @@
 // src/components/Sidebar.tsx
 import { useEffect, useMemo, useState } from "react";
-import { Calendar, Gift, LayoutDashboard, Menu, Settings, LogOut, LogIn, FileText } from "lucide-react";
+import { Calendar, Gift, LayoutDashboard, Menu, Settings, LogOut, LogIn, FileText, Users } from "lucide-react";
 
 interface SidebarProps {
   activeView: string; // "QUEUE" | "CALENDAR" | "GIFT" | "ADMIN" | "RECEIPT"
@@ -34,7 +34,7 @@ export function Sidebar({ activeView, onNavigate, onSettingsClick, onClockInClic
       className={[
         "h-screen bg-white border-r border-slate-200 flex flex-col",
         "transition-[width] duration-300 ease-in-out",
-        collapsed ? "w-[100px]" : "w-[240px]",
+        collapsed ? "w-[100px]" : "w-[200px]",
       ].join(" ")}
     >
       {/* Top */}
@@ -85,6 +85,13 @@ export function Sidebar({ activeView, onNavigate, onSettingsClick, onClockInClic
           collapsed={collapsed}
           active={activeView === "RECEIPT"}
           onClick={() => onNavigate("RECEIPT")}
+        />
+        <NavItem
+          icon={<Users className="h-7 w-7 text-blue-500" />}
+          label="Customer"
+          collapsed={collapsed}
+          active={activeView === "CUSTOMER"}
+          onClick={() => onNavigate("CUSTOMER")}
         />
       </nav>
 
